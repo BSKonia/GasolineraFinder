@@ -1,23 +1,58 @@
-import { ComponentFixture, TestBed } from '@angular/core/testing';
+import { Component, EventEmitter, Output } from '@angular/core';
+import { CommonModule } from '@angular/common';
+import { FormsModule } from '@angular/forms';
+import { Location } from '../../models/location';
+import { GeolocationService } from '../../services/geolocation';
 
-import { LocationSelector } from './location-selector';
+@Component({
+  selector: 'app-location-selector',
+  standalone: true,
+  imports: [CommonModule, FormsModule],
+  templateUrl: './location-selector.html',
+  styleUrl: './location-selector.scss',
+})
+export class LocationSelectorComponent {
+  @Output() locationChange = new EventEmitter<Location>();
 
-describe('LocationSelector', () => {
-  let component: LocationSelector;
-  let fixture: ComponentFixture<LocationSelector>;
+  latText = '';
+  lonText = '';
 
-  beforeEach(async () => {
-    await TestBed.configureTestingModule({
-      imports: [LocationSelector]
-    })
-    .compileComponents();
+  errorMsg: string | null = null;
+  loading = false;
 
-    fixture = TestBed.createComponent(LocationSelector);
-    component = fixture.componentInstance;
-    await fixture.whenStable();
-  });
+  constructor(private geo: GeolocationService) {}
 
-  it('should create', () => {
-    expect(component).toBeTruthy();
-  });
-});
+  emitManualLocation() {
+    this.errorMsg = null;
+
+    const lat = Number(this.latText.replace(',', '.'));
+    const lon = Number(this.lonText.replace(',', '.'));
+
+    if (!Number.isFinite(lat) || !Number.isFinite(lon)) {
+      this.errorMsg = 'Latitud/longitud inválidas.';
+      return;
+    }
+    if (lat < -90 || lat > 90 || lon < -180 || lon > 180) {
+      this.errorMsg = 'Latitud o longitud fuera de rango.';
+      return;
+    }
+
+    this.locationChange.emit({ lat, lon });
+  }
+
+  async useMyLocation() {
+    this.errorMsg = null;
+    this.loading = true;
+
+    try {
+      const loc = await this.geo.getCurrentLocation();
+      this.latText = String(loc.lat);
+      this.lonText = String(loc.lon);
+      this.locationChange.emit(loc);
+    } catch (e: any) {
+      this.errorMsg = e?.message ?? 'Error obteniendo ubicación.';
+    } finally {
+      this.loading = false;
+    }
+  }
+}

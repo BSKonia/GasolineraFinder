@@ -1,1 +1,26 @@
-<p>location-selector works!</p>
+<div class="location-box">
+  <h3>Ubicación</h3>
+
+  <div class="row">
+    <label>
+      Latitud:
+      <input type="text" [(ngModel)]="latText" placeholder="Ej: 43.2630" />
+    </label>
+
+    <label>
+      Longitud:
+      <input type="text" [(ngModel)]="lonText" placeholder="Ej: -2.9350" />
+    </label>
+  </div>
+
+  <div class="actions">
+    <button type="button" (click)="emitManualLocation()">Usar coordenadas</button>
+
+    <button type="button" (click)="useMyLocation()" [disabled]="loading">
+      {{ loading ? 'Obteniendo…' : 'Usar mi ubicación' }}
+      <p class="error" *ngIf="errorMsg">{{ errorMsg }}</p>
+    </button>
+  </div>
+
+  <p class="error" *ngIf="errorMsg">{{ errorMsg }}</p>
+</div>

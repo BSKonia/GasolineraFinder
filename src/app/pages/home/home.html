@@ -1,1 +1,30 @@
-<p>home works!</p>
+<h2>GasolineraFinder</h2>
+
+<app-location-selector (locationChange)="onLocationChange($event)"></app-location-selector>
+<app-filters (filterChange)="onFilterChange($event)"></app-filters>
+
+<div style="margin-top: 16px;">
+  <strong>Filtros actuales:</strong>
+  <pre>{{ filters | json }}</pre>
+</div>
+
+<div style="margin-top: 16px;">
+  <strong>Ubicación actual:</strong>
+  <span *ngIf="location; else noLoc">
+    {{ location.lat }} , {{ location.lon }}
+  </span>
+  <ng-template #noLoc>Sin ubicación seleccionada.</ng-template>
+</div>
+
+<hr />
+
+<app-summary-box
+  [stations]="stationsView"
+  [filters]="filters">
+</app-summary-box>
+
+<app-station-list
+  [stations]="stationsView"
+  [filters]="filters">
+</app-station-list>
+

@@ -1,1 +1,50 @@
-<p>filters works!</p>
+<div class="filters-box">
+  <h3>Filtros</h3>
+
+  <div class="row">
+    <label>
+      Carburante:
+      <select [(ngModel)]="fuel" (change)="emitFilters()">
+        <option value="Gasolina 95 E5">Gasolina 95 E5</option>
+        <option value="Gasolina 98 E5">Gasolina 98 E5</option>
+        <option value="Gasóleo A">Gasóleo A</option>
+      </select>
+    </label>
+
+    <label>
+      Radio (km):
+      <input type="number" min="0" [(ngModel)]="radiusKm" (input)="emitFilters()" />
+    </label>
+  </div>
+
+  <div class="row">
+    <label>
+      Modo marcas:
+      <select [(ngModel)]="brandMode" (change)="emitFilters()">
+        <option value="all">Todas</option>
+        <option value="whitelist">Solo estas (lista blanca)</option>
+        <option value="blacklist">Excluir estas (lista negra)</option>
+      </select>
+    </label>
+
+    <label>
+      Marcas (separadas por comas):
+      <input
+        type="text"
+        [(ngModel)]="brandsText"
+        (input)="emitFilters()"
+        placeholder="Ej: REPSOL, BP, CEPSA"
+      />
+    </label>
+  </div>
+
+  <div class="row">
+    <label>
+      Ordenar por:
+      <select [(ngModel)]="sortBy" (change)="emitFilters()">
+        <option value="distance">Distancia</option>
+        <option value="price">Precio</option>
+      </select>
+    </label>
+  </div>
+</div>

@@ -1,0 +1,23 @@
+<div class="summary">
+  <h3>Resumen</h3>
+
+  <p *ngIf="stations.length === 0">
+    Selecciona ubicación para ver el resumen.
+  </p>
+
+  <div *ngIf="stations.length > 0">
+    <div class="item" *ngIf="nearest">
+      <strong>Más cercana:</strong>
+      {{ nearest.rotulo }} — {{ nearest.municipio }} —
+      {{ nearest.distanceKm?.toFixed(2) }} km —
+      {{ filters.fuel }}: {{ nearest.prices[filters.fuel] }} €
+    </div>
+
+    <div class="item" *ngIf="cheapestInRadius">
+      <strong>Más barata (en el radio):</strong>
+      {{ cheapestInRadius.rotulo }} — {{ cheapestInRadius.municipio }} —
+      {{ cheapestInRadius.distanceKm?.toFixed(2) }} km —
+      {{ filters.fuel }}: {{ cheapestInRadius.prices[filters.fuel] }} €
+    </div>
+  </div>
+</div>
