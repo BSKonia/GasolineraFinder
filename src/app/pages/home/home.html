@@ -1,30 +1,190 @@
-<h2>GasolineraFinder</h2>
-
-<app-location-selector (locationChange)="onLocationChange($event)"></app-location-selector>
-<app-filters (filterChange)="onFilterChange($event)"></app-filters>
-
-<div style="margin-top: 16px;">
-  <strong>Filtros actuales:</strong>
-  <pre>{{ filters | json }}</pre>
+<div class="home-container">
+  <!-- Título -->
+  <h2>GasolineraFinder</h2>
+  
+  <!-- Estado de carga y errores -->
+  <div *ngIf="cargando" class="loading">
+    <p>🔄 Cargando gasolineras...</p>
+  </div>
+  
+  <div *ngIf="error" class="error">
+    <p>❌ {{ error }}</p>
+    <button (click)="recargarGasolineras()">Reintentar</button>
+  </div>
+  
+  <!-- Selector de ubicación (comentado hasta que tengas el componente) -->
+  <!-- 
+  <app-location-selector 
+    (locationChange)="onUbicacionCambiada($event)">
+  </app-location-selector>
+  -->
+  
+  <!-- Información de ubicación actual -->
+  <div class="location-info">
+    <strong>📍 Ubicación actual:</strong>
+    <span *ngIf="ubicacionUsuario; else noLoc">
+      {{ ubicacionUsuario.latitud | number:'1.4-4' }}, {{ ubicacionUsuario.longitud | number:'1.4-4' }}
+      <span *ngIf="ubicacionUsuario.ciudad">- {{ ubicacionUsuario.ciudad }}</span>
+    </span>
+    <ng-template #noLoc>Sin ubicación seleccionada.</ng-template>
+    <button (click)="obtenerUbicacion()" style="margin-left: 10px;">📍 Obtener mi ubicación</button>
+  </div>
+  
+  <!-- Filtros (comentado hasta que tengas el componente) -->
+  <!-- 
+  <app-filters 
+    [empresasDisponibles]="empresasDisponibles"
+    [filtros]="filtros"
+    (filterChange)="onFiltrosCambiados($event)">
+  </app-filters>
+  -->
+  
+  <!-- Filtros actuales (para debug) -->
+  <div class="filters-info" *ngIf="filtros">
+    <strong>⚙️ Filtros actuales:</strong>
+    <ul>
+      <li>Tipo combustible: {{ filtros.tipoCombustible }}</li>
+      <li>Distancia máxima: {{ filtros.distanciaMaxima }} km</li>
+      <li>Precio máximo: {{ filtros.precioMaximo > 0 ? (filtros.precioMaximo | number:'1.2-2') + '€' : 'Sin límite' }}</li>
+      <li>Solo abiertas: {{ filtros.soloAbiertas ? 'Sí' : 'No' }}</li>
+      <li>Ordenar por: {{ filtros.ordenarPor }}</li>
+      <li *ngIf="filtros.empresas.length > 0">Empresas seleccionadas: {{ filtros.empresas.join(', ') }}</li>
+    </ul>
+  </div>
+  
+  <!-- Resumen (comentado hasta que tengas el componente) -->
+  <!-- 
+  <app-summary-box
+    [stations]="gasolinerasFiltradas"
+    [filters]="filtros">
+  </app-summary-box>
+  -->
+  
+  <!-- Contador de resultados -->
+  <div class="results-count" *ngIf="gasolinerasFiltradas.length > 0">
+    <strong>📊 Resultados:</strong> {{ gasolinerasFiltradas.length }} gasolineras encontradas
+    (de {{ gasolineras.length }} totales)
+  </div>
+  
+  <!-- Lista de gasolineras -->
+  <div *ngIf="gasolinerasFiltradas.length > 0 && !cargando">
+    <!-- Lista de gasolineras (comentado hasta que tengas el componente) -->
+    <!-- 
+    <app-station-list
+      [stations]="gasolinerasFiltradas"
+      [filters]="filtros"
+      (stationSelected)="onGasolineraSeleccionada($event)">
+    </app-station-list>
+    -->
+    
+    <!-- Tabla temporal de gasolineras -->
+    <div class="stations-table">
+      <h3>Gasolineras cercanas</h3>
+      <table>
+        <thead>
+          <tr>
+            <th>Empresa</th>
+            <th>Dirección</th>
+            <th>Municipio</th>
+            <th>Gasolina 95</th>
+            <th>Gasóleo A</th>
+            <th>Distancia</th>
+            <th>Horario</th>
+            <th>Acciones</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr *ngFor="let gasolinera of gasolinerasFiltradas | slice:0:10">
+            <td><strong>{{ gasolinera.rotulo }}</strong></td>
+            <td>{{ gasolinera.direccion }}</td>
+            <td>{{ gasolinera.municipio }} ({{ gasolinera.provincia }})</td>
+            <td>
+              <span *ngIf="gasolinera.precioGasolina95 > 0; else na">
+                {{ gasolinera.precioGasolina95 | number:'1.3-3' }}€
+              </span>
+              <ng-template #na>N/A</ng-template>
+            </td>
+            <td>
+              <span *ngIf="gasolinera.precioDiesel > 0; else na2">
+                {{ gasolinera.precioDiesel | number:'1.3-3' }}€
+              </span>
+              <ng-template #na2>N/A</ng-template>
+            </td>
+            <td>
+              <span *ngIf="gasolinera.distanceKm">
+                {{ gasolinera.distanceKm | number:'1.1-1' }} km
+              </span>
+              <span *ngIf="!gasolinera.distanceKm">-</span>
+            </td>
+            <td>{{ gasolinera.horario || 'No especificado' }}</td>
+            <td>
+              <button (click)="onGasolineraSeleccionada(gasolinera)">Ver detalles</button>
+            </td>
+          </tr>
+        </tbody>
+      </table>
+      <p *ngIf="gasolinerasFiltradas.length > 10">
+        Mostrando 10 de {{ gasolinerasFiltradas.length }} gasolineras
+      </p>
+    </div>
+  </div>
+  
+  <!-- Sin resultados -->
+  <div *ngIf="gasolinerasFiltradas.length === 0 && !cargando && !error" class="no-results">
+    <p>No se encontraron gasolineras con los filtros actuales.</p>
+    <button (click)="cargarGasolineras()">Recargar datos</button>
+  </div>
+  
+  <!-- Detalles de gasolinera seleccionada -->
+  <div *ngIf="gasolineraSeleccionada" class="station-details">
+    <h3>Detalles de {{ gasolineraSeleccionada.rotulo }}</h3>
+    <div class="details-grid">
+      <div><strong>Dirección:</strong> {{ gasolineraSeleccionada.direccion }}</div>
+      <div><strong>Localidad:</strong> {{ gasolineraSeleccionada.localidad }}</div>
+      <div><strong>Municipio:</strong> {{ gasolineraSeleccionada.municipio }}</div>
+      <div><strong>Provincia:</strong> {{ gasolineraSeleccionada.provincia }}</div>
+      <div><strong>Código Postal:</strong> {{ gasolineraSeleccionada.codigoPostal }}</div>
+      <div><strong>Horario:</strong> {{ gasolineraSeleccionada.horario }}</div>
+    </div>
+    
+    <h4>Precios</h4>
+    <div class="prices-grid">
+      <div *ngIf="gasolineraSeleccionada.precioGasolina95 > 0">
+        <strong>Gasolina 95:</strong> {{ gasolineraSeleccionada.precioGasolina95 | number:'1.3-3' }}€
+      </div>
+      <div *ngIf="gasolineraSeleccionada.precioGasolina98 > 0">
+        <strong>Gasolina 98:</strong> {{ gasolineraSeleccionada.precioGasolina98 | number:'1.3-3' }}€
+      </div>
+      <div *ngIf="gasolineraSeleccionada.precioDiesel > 0">
+        <strong>Gasóleo A:</strong> {{ gasolineraSeleccionada.precioDiesel | number:'1.3-3' }}€
+      </div>
+      <div *ngIf="gasolineraSeleccionada.precioDieselPremium > 0">
+        <strong>Gasóleo Premium:</strong> {{ gasolineraSeleccionada.precioDieselPremium | number:'1.3-3' }}€
+      </div>
+      <div *ngIf="gasolineraSeleccionada.precioGLP > 0">
+        <strong>GLP:</strong> {{ gasolineraSeleccionada.precioGLP | number:'1.3-3' }}€
+      </div>
+    </div>
+    
+    <button (click)="gasolineraSeleccionada = null">Cerrar detalles</button>
+  </div>
+  
+  <!-- Debug info -->
+  <div class="debug-info" *ngIf="false"> <!-- Cambia a *ngIf="true" para debug -->
+    <hr />
+    <h4>Información de depuración</h4>
+    <div>
+      <strong>Gasolineras totales:</strong> {{ gasolineras.length }}
+    </div>
+    <div>
+      <strong>Gasolineras filtradas:</strong> {{ gasolinerasFiltradas.length }}
+    </div>
+    <div>
+      <strong>Ubicación:</strong> {{ ubicacionUsuario | json }}
+    </div>
+    <div>
+      <strong>Filtros:</strong> {{ filtros | json }}
+    </div>
+    <button (click)="recargarGasolineras()">Recargar datos</button>
+  </div>
 </div>
-
-<div style="margin-top: 16px;">
-  <strong>Ubicación actual:</strong>
-  <span *ngIf="location; else noLoc">
-    {{ location.lat }} , {{ location.lon }}
-  </span>
-  <ng-template #noLoc>Sin ubicación seleccionada.</ng-template>
-</div>
-
-<hr />
-
-<app-summary-box
-  [stations]="stationsView"
-  [filters]="filters">
-</app-summary-box>
-
-<app-station-list
-  [stations]="stationsView"
-  [filters]="filters">
-</app-station-list>
-

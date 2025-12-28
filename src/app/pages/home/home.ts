@@ -1,110 +1,202 @@
 import { Component, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
-
-import { Location } from '../../models/location';
-import { Filter } from '../../models/filter';
-import { Station } from '../../models/station';
-
-import { LocationSelector } from '../../components/location-selector/location-selector';
-import { Filters } from '../../components/filters/filters';
-
-import { haversineKm } from '../../utils/haversine';
+import { FormsModule } from '@angular/forms';
 import { GasolineraService } from '../../services/api/gasolinera';
-import { StationList } from '../../components/station-list/station-list';
-import { SummaryBox } from '../../components/summary-box/summary-box';
+import { GeolocationService } from '../../services/geolocation';
+import { StorageService } from '../../services/storage';
+import { Gasolinera } from '../../models/station';
+import { Filtros } from '../../models/filter';
+import { Ubicacion } from '../../models/location';
 
 @Component({
   selector: 'app-home',
   standalone: true,
-  imports: [CommonModule, LocationSelector, Filters, StationList, SummaryBox],  // Añadido SummaryBox aquí
+  imports: [CommonModule, FormsModule],
   templateUrl: './home.html',
-  styleUrl: './home.scss',
+  styleUrls: ['./home.scss']
 })
-
 export class Home implements OnInit {
-  // Ubicación seleccionada
-  location: Location | null = null;
-
-  // Filtros (valores por defecto)
-  filters: Filter = {
-    fuel: 'Gasolina 95 E5',
-    radiusKm: 10,
-    brandMode: 'all',
-    brands: [],
-    sortBy: 'distance',
+  gasolineras: Gasolinera[] = [];
+  gasolinerasFiltradas: Gasolinera[] = [];
+  gasolineraSeleccionada: Gasolinera | null = null;
+  
+  ubicacionUsuario: Ubicacion = {
+    latitud: 40.4168,
+    longitud: -3.7038,
+    ciudad: 'Madrid'
   };
+  
+  filtros: Filtros = {
+    tipoCombustible: 'todos',
+    empresas: [],
+    precioMaximo: 0,
+    distanciaMaxima: 50,
+    soloAbiertas: false,
+    ordenarPor: 'distancia'
+  };
+  
+  cargando = false;
+  error: string | null = null;
+  empresasDisponibles: string[] = [];
 
-  // Datos
-  stations: Station[] = [];
-  stationsView: Station[] = [];
-
-  constructor(private gasolineraService: GasolineraService) {}
+  constructor(
+    private gasolineraService: GasolineraService,
+    private geolocationService: GeolocationService,
+    private storageService: StorageService
+  ) {}
 
   ngOnInit(): void {
-    this.gasolineraService.getGasolineras().subscribe((data) => {
-      this.stations = data;
-      this.recompute();
+    console.log('🚀 Inicializando GasolineraFinder...');
+    
+    // 1. Primero intenta cargar ubicación guardada
+    const ubicacionGuardada = this.storageService.obtenerUbicacion();
+    if (ubicacionGuardada) {
+      this.ubicacionUsuario = ubicacionGuardada;
+      console.log('📍 Ubicación cargada de storage:', ubicacionGuardada);
+      this.cargarGasolineras();
+      return;
+    }
+    
+    // 2. Si no hay guardada, intenta geolocalización
+    this.obtenerUbicacion();
+  }
+
+  obtenerUbicacion(): void {
+    console.log('📍 Intentando obtener ubicación...');
+    
+    this.geolocationService.getCurrentLocation().then((ubicacion) => {
+      console.log('📍 Ubicación obtenida:', ubicacion);
+      this.ubicacionUsuario = {
+        ...ubicacion,
+        ciudad: 'Ubicación actual' // Añade ciudad si no viene
+      };
+      this.storageService.guardarUbicacion(this.ubicacionUsuario);
+      this.cargarGasolineras();
+    }).catch((error) => {
+      console.warn('⚠️ Error en geolocalización:', error);
+      
+      // Fallback: usar Madrid por defecto
+      console.log('📍 Usando ubicación por defecto (Madrid)');
+      this.ubicacionUsuario = {
+        latitud: 40.4168,
+        longitud: -3.7038,
+        ciudad: 'Madrid'
+      };
+      
+      this.cargarGasolineras();
     });
   }
 
-  onLocationChange(loc: Location): void {
-    this.location = loc;
-    this.recompute();
+  cargarGasolineras(): void {
+    console.log('🌐 Iniciando carga de gasolineras para:', this.ubicacionUsuario);
+    
+    this.cargando = true;
+    this.error = null;
+    
+    console.log('✅ Llamando a API para obtener gasolineras...');
+    
+    this.gasolineraService.getGasolineras().subscribe({
+      next: (data) => {
+        console.log('✅ API respondió con', data.length, 'gasolineras');
+        
+        if (data.length === 0) {
+          this.error = 'No se encontraron gasolineras en la API.';
+          this.cargando = false;
+          return;
+        }
+        
+        console.log('Primera gasolinera:', data[0]);
+        
+        this.gasolineras = data;
+        this.extraerEmpresasUnicas();
+        this.aplicarFiltros();
+        this.cargando = false;
+        
+        console.log('🎯 Gasolineras filtradas:', this.gasolinerasFiltradas.length);
+      },
+      error: (error) => {
+        console.error('❌ Error en API:', error);
+        this.error = 'Error al cargar las gasolineras. La API podría no estar disponible.';
+        this.cargando = false;
+      }
+    });
   }
 
-  onFilterChange(f: Filter): void {
-    this.filters = f;
-    this.recompute();
+  extraerEmpresasUnicas(): void {
+    const empresas = this.gasolineras
+      .map(g => g.rotulo)
+      .filter((rotulo, index, self) => rotulo && self.indexOf(rotulo) === index)
+      .sort();
+    
+    this.empresasDisponibles = empresas.slice(0, 20);
+    console.log('🏢 Empresas disponibles:', this.empresasDisponibles.length);
   }
 
-  recompute(): void {
-    // Si no hay ubicación, no mostramos resultados
-    if (!this.location) {
-      this.stationsView = [];
+  aplicarFiltros(): void {
+    if (!this.gasolineras.length) {
+      console.log('⚠️ No hay gasolineras para filtrar');
       return;
     }
+    
+    console.log('🔧 Aplicando filtros:', this.filtros);
+    
+    this.gasolinerasFiltradas = this.gasolineraService.filtrarGasolineras(
+      this.gasolineras,
+      this.filtros,
+      this.ubicacionUsuario
+    );
+    
+    // Guardar filtros
+    this.storageService.guardarFiltros(this.filtros);
+    
+    console.log('📊 Resultados después de filtrar:', this.gasolinerasFiltradas.length);
+  }
 
-    const fuel = this.filters.fuel;
+  onFiltrosCambiados(nuevosFiltros: Filtros): void {
+    console.log('🔄 Filtros cambiados:', nuevosFiltros);
+    this.filtros = nuevosFiltros;
+    this.aplicarFiltros();
+  }
 
-    // 1) Calcular distancia
-    let list: Station[] = this.stations.map((s) => ({
-      ...s,
-      distanceKm: haversineKm(
-        this.location!.lat,
-        this.location!.lon,
-        s.lat,
-        s.lon
-      ),
-    }));
+  onUbicacionCambiada(nuevaUbicacion: Ubicacion): void {
+    console.log('📍 Ubicación cambiada:', nuevaUbicacion);
+    this.ubicacionUsuario = nuevaUbicacion;
+    this.storageService.guardarUbicacion(nuevaUbicacion);
+    this.aplicarFiltros();
+  }
 
-    // 2) Filtrar por radio (si radiusKm > 0)
-    if (this.filters.radiusKm > 0) {
-      list = list.filter((s) => (s.distanceKm ?? 0) <= this.filters.radiusKm);
-    }
-
-    // 3) Filtrar por carburante (que exista precio)
-    list = list.filter((s) => s.prices[fuel] != null);
-
-    // 4) Filtrar por marca (lista blanca/negra)
-    if (this.filters.brandMode !== 'all' && this.filters.brands.length > 0) {
-      const brandsSet = new Set(
-        this.filters.brands.map((b) => b.trim().toLowerCase())
-      );
-
-      if (this.filters.brandMode === 'whitelist') {
-        list = list.filter((s) => brandsSet.has(s.rotulo.trim().toLowerCase()));
-      } else if (this.filters.brandMode === 'blacklist') {
-        list = list.filter((s) => !brandsSet.has(s.rotulo.trim().toLowerCase()));
-      }
-    }
-
-    // 5) Ordenación
-    if (this.filters.sortBy === 'distance') {
-      list.sort((a, b) => (a.distanceKm ?? 0) - (b.distanceKm ?? 0));
-    } else {
-      list.sort((a, b) => (a.prices[fuel] ?? 999) - (b.prices[fuel] ?? 999));
-    }
-
-    this.stationsView = list;
+  onGasolineraSeleccionada(gasolinera: Gasolinera): void {
+    console.log('🎯 Gasolinera seleccionada:', gasolinera.rotulo);
+    this.gasolineraSeleccionada = gasolinera;
+  }
+  
+  obtenerPrecioRelevante(gasolinera: Gasolinera): number {
+    const precios = [];
+    
+    if (gasolinera.precioGasolina95 > 0) precios.push(gasolinera.precioGasolina95);
+    if (gasolinera.precioGasolina98 > 0) precios.push(gasolinera.precioGasolina98);
+    if (gasolinera.precioDiesel > 0) precios.push(gasolinera.precioDiesel);
+    if (gasolinera.precioDieselPremium > 0) precios.push(gasolinera.precioDieselPremium);
+    if (gasolinera.precioGLP > 0) precios.push(gasolinera.precioGLP);
+    
+    return precios.length > 0 ? Math.min(...precios) : 0;
+  }
+  
+  // Método para recargar gasolineras manualmente
+  recargarGasolineras(): void {
+    console.log('🔄 Recargando gasolineras manualmente...');
+    this.cargarGasolineras();
+  }
+  
+  // Método para usar coordenadas manuales (si añades inputs)
+  usarCoordenadasManuales(latitud: number, longitud: number): void {
+    console.log('📍 Estableciendo coordenadas manuales:', { latitud, longitud });
+    this.ubicacionUsuario = {
+      latitud: latitud,
+      longitud: longitud,
+      ciudad: 'Ubicación manual'
+    };
+    this.storageService.guardarUbicacion(this.ubicacionUsuario);
+    this.cargarGasolineras();
   }
 }

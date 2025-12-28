@@ -1,10 +1,10 @@
 import { Injectable } from '@angular/core';
-import { Location } from '../models/location';
+import { Ubicacion } from '../models/location';
 
 @Injectable({ providedIn: 'root' })
-export class Geolocation {
-  getCurrentLocation(options?: PositionOptions): Promise<Location> {
-    return new Promise<Location>((resolve, reject) => {
+export class GeolocationService {
+  getCurrentLocation(options?: PositionOptions): Promise<Ubicacion> {
+    return new Promise<Ubicacion>((resolve, reject) => {
       if (!navigator.geolocation) {
         reject(new Error('Geolocalización no soportada por el navegador.'));
         return;
@@ -13,8 +13,9 @@ export class Geolocation {
       navigator.geolocation.getCurrentPosition(
         (pos) => {
           resolve({
-            lat: pos.coords.latitude,
-            lon: pos.coords.longitude,
+            latitud: pos.coords.latitude,
+            longitud: pos.coords.longitude,
+            ciudad: 'Ubicación actual'
           });
         },
         (err) => {
@@ -33,5 +34,10 @@ export class Geolocation {
         }
       );
     });
+  }
+  
+  // Método adicional para compatibilidad con el código existente
+  obtenerUbicacionActual() {
+    return this.getCurrentLocation();
   }
 }

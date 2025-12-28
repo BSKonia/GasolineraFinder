@@ -1,4 +1,5 @@
-export interface Location {
-  lat: number;
-  lon: number;
+export interface Ubicacion {
+  latitud: number;
+  longitud: number;
+  ciudad: string;
 }
