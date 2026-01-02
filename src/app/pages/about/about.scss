@@ -1,0 +1,150 @@
+.about-container {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 2rem;
+  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+}
+
+.about-header {
+  text-align: center;
+  margin-bottom: 3rem;
+  padding-bottom: 2rem;
+  border-bottom: 2px solid #e0e0e0;
+
+  h1 {
+    font-size: 2.8rem;
+    color: #2c3e50;
+    margin-bottom: 0.5rem;
+    font-weight: 700;
+  }
+
+  .subtitle {
+    font-size: 1.2rem;
+    color: #7f8c8d;
+    font-style: italic;
+  }
+}
+
+.about-content {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+  gap: 2rem;
+  margin-bottom: 3rem;
+}
+
+.about-card {
+  background: white;
+  border-radius: 12px;
+  padding: 1.8rem;
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+  transition: transform 0.3s ease, box-shadow 0.3s ease;
+  border: 1px solid #e0e0e0;
+
+  &:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 8px 15px rgba(0, 0, 0, 0.15);
+  }
+
+  h2 {
+    font-size: 1.5rem;
+    color: #3498db;
+    margin-bottom: 1rem;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+  }
+
+  p {
+    color: #555;
+    line-height: 1.6;
+    margin-bottom: 1rem;
+  }
+
+  ul {
+    list-style-type: none;
+    padding-left: 0;
+
+    li {
+      padding: 0.5rem 0;
+      padding-left: 1.5rem;
+      position: relative;
+      color: #555;
+
+      &::before {
+        content: "✓";
+        position: absolute;
+        left: 0;
+        color: #2ecc71;
+        font-weight: bold;
+      }
+    }
+  }
+}
+
+.contact-link {
+  color: #3498db;
+  text-decoration: none;
+  font-weight: 600;
+
+  &:hover {
+    text-decoration: underline;
+  }
+}
+
+.contact-info {
+  color: #2c3e50 !important;
+  font-weight: 500;
+  margin: 0.3rem 0 !important;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.back-button {
+  text-align: center;
+  margin-top: 3rem;
+  padding-top: 2rem;
+  border-top: 2px solid #e0e0e0;
+
+  .btn-back {
+    background: #3498db;
+    color: white;
+    border: none;
+    padding: 0.8rem 2rem;
+    font-size: 1.1rem;
+    border-radius: 50px;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    font-weight: 600;
+
+    &:hover {
+      background: #2980b9;
+      transform: scale(1.05);
+      box-shadow: 0 4px 8px rgba(52, 152, 219, 0.3);
+    }
+
+    &:active {
+      transform: scale(0.98);
+    }
+  }
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+  .about-container {
+    padding: 1rem;
+  }
+
+  .about-header {
+    h1 {
+      font-size: 2rem;
+    }
+  }
+
+  .about-content {
+    grid-template-columns: 1fr;
+  }
+}
