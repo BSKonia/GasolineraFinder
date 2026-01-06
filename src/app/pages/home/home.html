@@ -81,10 +81,11 @@
           </div>
 
           <div class="botones-accion-container">
-           <button (click)="obtenerUbicacion()" class="btn-ubicacion-elegante" title="Detectar mi ubicación automáticamente">
-            <span class="btn-ubicacion-icono">📍</span>
-            <span class="btn-ubicacion-texto">Mi ubicación</span>
-        </button>
+            <button (click)="obtenerUbicacion()" class="btn-ubicacion-elegante" title="Detectar mi ubicación automáticamente">
+              <span class="btn-ubicacion-icono">📍</span>
+              <span class="btn-ubicacion-texto">Mi ubicación</span>
+            </button>
+          </div>
 
         </div>
       </div>
@@ -104,7 +105,6 @@
         </div>
         <div class="acordeon-texto">
           <h3>Destino</h3>
-          
         </div>
       </div>
       <div class="acordeon-flecha" [class.abierto]="acordeonAbierto.destino">
@@ -159,6 +159,36 @@
 
     <div class="acordeon-contenido" *ngIf="acordeonAbierto.filtros">
       <div class="contenido-interior">
+
+        <!-- ✅ NUEVO: Autonomía (solo modo ruta) -->
+        <div class="ruta-settings" *ngIf="modoSeleccionado === 'ruta'">
+          <div class="ruta-settings-title">🚗 Datos del vehículo</div>
+
+          <div class="campos-grid ruta-settings-grid">
+            <div class="campo-direccion">
+              <label for="kmDisponiblesUsuario">🔋 Autonomía disponible (km)</label>
+              <input
+                id="kmDisponiblesUsuario"
+                type="number"
+                min="0"
+                [(ngModel)]="kmDisponiblesUsuario"
+                placeholder="Ej: 420"
+              />
+              <div class="ruta-settings-hint">
+                Se descuenta una reserva de <strong>{{ reservaMinKm }} km</strong>.
+              </div>
+            </div>
+
+            <div class="campo-direccion">
+              <label>⛽ Consumo fijo usado</label>
+              <input type="text" [value]="consumoFijoL100 + ' L/100km'" disabled />
+              <div class="ruta-settings-hint">
+                (Puedes hacerlo configurable más adelante)
+              </div>
+            </div>
+          </div>
+        </div>
+
         <app-filters
           [empresasDisponibles]="empresasDisponibles"
           [filters]="filters"
@@ -169,26 +199,24 @@
   </div>
 
   <!-- BOTÓN DE BÚSQUEDA -->
-<div class="botones-busqueda-container">
-  <button 
-    (click)="ejecutarBusqueda()" 
-    class="btn-busqueda-principal"
-    [class.cargando]="busquedaEnCurso"
-    [disabled]="busquedaEnCurso">
-    <span class="btn-busqueda-icono">{{ busquedaEnCurso ? '⏳' : '🔍' }}</span>
-    <span class="btn-busqueda-texto">
-      {{ busquedaEnCurso ? 'Buscando...' : 'Buscar gasolineras' }}
-      <span *ngIf="!busquedaEnCurso && mostrarResultados && gasolinerasFiltradas.length > 0" class="contador-preview">
-        
+  <div class="botones-busqueda-container">
+    <button
+      (click)="ejecutarBusqueda()"
+      class="btn-busqueda-principal"
+      [class.cargando]="busquedaEnCurso"
+      [disabled]="busquedaEnCurso">
+      <span class="btn-busqueda-icono">{{ busquedaEnCurso ? '⏳' : '🔍' }}</span>
+      <span class="btn-busqueda-texto">
+        {{ busquedaEnCurso ? 'Buscando...' : 'Buscar gasolineras' }}
+        <span *ngIf="!busquedaEnCurso && mostrarResultados && gasolinerasFiltradas.length > 0" class="contador-preview"></span>
       </span>
-    </span>
-  </button>
-</div>
+    </button>
+  </div>
 
   <!-- ACORDEÓN: Resultados -->
-  <div class="acordeon-mejorado" 
+  <div class="acordeon-mejorado"
        id="resultados-container"
-       *ngIf="mostrarResultados" 
+       *ngIf="mostrarResultados"
        [class.cerrado]="!acordeonAbierto.resultados">
 
     <div class="acordeon-cabecera" (click)="toggleAcordeon('resultados')">
@@ -204,10 +232,10 @@
         <span>▼</span>
       </div>
     </div>
-    
+
     <div class="acordeon-contenido" *ngIf="acordeonAbierto.resultados">
       <div class="contenido-interior">
-        
+
         <!-- Mensajes de estado dentro del acordeón -->
         <div *ngIf="cargando" class="estado-cargando">
           <p>Cargando gasolineras...</p>
@@ -226,11 +254,48 @@
 
         <!-- Mostrar resultados solo si hay gasolineras -->
         <div *ngIf="!cargando && !error && gasolinerasFiltradas.length > 0">
-          <app-summary-box 
+
+          <!-- ✅ SummaryBox -->
+          <app-summary-box
             [stations]="gasolinerasFiltradas"
             [filters]="filters"
-            [ubicacionUsuario]="ubicacionUsuario"> 
+            [ubicacionUsuario]="ubicacionUsuario">
           </app-summary-box>
+
+          <!-- ✅ NUEVO: Pintado routeInfo para el TOP 3 en modo ruta -->
+          <div class="ruta-top3-extra" *ngIf="modoSeleccionado === 'ruta'">
+            <h4>📌 Detalles de desvío (TOP 3)</h4>
+
+            <div class="ruta-top3-grid">
+              <div class="ruta-top3-card" *ngFor="let g of gasolinerasFiltradas; let i = index">
+                <div class="ruta-top3-rank">#{{ i + 1 }}</div>
+
+                <div class="ruta-top3-main">
+                  <div class="ruta-top3-name">{{ g.rotulo }}</div>
+                  <div class="ruta-top3-addr">{{ g.direccion }}</div>
+
+                  <div class="ruta-top3-metrics" *ngIf="g.routeInfo as ri; else noRi">
+  <div class="metric">
+    <span class="metric-label">➕ Extra km real</span>
+    <span class="metric-value">{{ ri.extraKmReal | number:'1.1-1' }} km</span>
+  </div>
+  <div class="metric">
+    <span class="metric-label">💸 Coste desvío</span>
+    <span class="metric-value">{{ ri.costeDesvio | number:'1.2-2' }} €</span>
+  </div>
+</div>
+
+<ng-template #noRi>
+  <div class="ruta-top3-metrics">
+    <div class="metric muted">No se pudo calcular routeInfo para esta estación.</div>
+  </div>
+</ng-template>
+
+                </div>
+              </div>
+            </div>
+          </div>
+
         </div>
 
       </div>
@@ -238,7 +303,7 @@
 
   </div>
 
-  <!-- Botón Restablecer todo (fuera del acordeón de resultados) -->
+  <!-- Botón Restablecer todo -->
   <div class="restablecer-container">
     <button (click)="restablecerTodo()" class="btn-restablecer-todo">
       🔄 Restablecer todo
@@ -246,8 +311,8 @@
   </div>
 
   <!-- Botón Scroll to Top -->
-  <button 
-    class="scroll-top-btn" 
+  <button
+    class="scroll-top-btn"
     [class.visible]="mostrarBotonScrollTop"
     (click)="scrollToTop()"
     aria-label="Volver arriba"

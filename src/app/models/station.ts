@@ -4,6 +4,15 @@ export interface StationPrices {
   [fuelName: string]: number | null;
 }
 
+// ✅ Tipo para modo ruta
+export type CandidateRouteInfo = {
+  distToGasKm: number;
+  distConParadaKm: number;
+  extraKmReal: number;
+  litrosExtra: number;
+  costeDesvio: number;
+};
+
 export interface Gasolinera {
   id: string;
   rotulo: string;
@@ -17,9 +26,9 @@ export interface Gasolinera {
   margen: string;
   tipoVenta: string;
   horario: string;
-  valoracion?: number; // opcional
+  valoracion?: number;
 
-  // precios unificados (los usa el SummaryBox)
+  // precios unificados
   precios: StationPrices;
 
   remision: string;
@@ -31,21 +40,23 @@ export interface Gasolinera {
   // calculadas
   distanceKm?: number;
 
-  // (si las usas en UI o cálculos)
+  // ✅ modo ruta
+  routeInfo?: CandidateRouteInfo;
+
+  // precios “planos”
   precioGasolina95: number;
   precioGasolina98: number;
   precioDiesel: number;
   precioDieselPremium: number;
   precioGLP: number;
 }
-export interface Ubicacion {
-  calle: string;  // Nueva propiedad
-  numero: string;  // Nueva propiedad
-  ciudad: string;
-  provincia: string;  // Nueva propiedad
-  latitud: number;
-  longitud: number;
-  direccionCompleta?: string;  // Opcional para almacenar la dirección completa
+
+// Extensiones opcionales para modo ruta
+export interface GasolineraRuta extends Gasolinera {
+  distToGasKm?: number;       // leg1
+  distConParadaKm?: number;   // total
+  extraKmReal?: number;       // total - base
+  costeDesvio?: number;       // litrosExtra * precioLitro
 }
-// Alias por compatibilidad si alguien importaba Station
+
 export type Station = Gasolinera;
