@@ -134,6 +134,7 @@ type RouteBaseInfo = {
   templateUrl: './home.html',
   styleUrls: ['./home.scss'],
 })
+
 export class Home implements OnInit, OnDestroy, AfterViewChecked {
   // ---------------------------
   // DATA
@@ -213,31 +214,106 @@ export class Home implements OnInit, OnDestroy, AfterViewChecked {
 
   // ✅ NUEVO: radio fijo del “corredor” (distancia lateral a la ruta)
   // El slider maxDistance lo usamos SOLO como “desvío máximo real”.
-  private readonly corridorRadiusKm = 7;
+  private readonly corridorRadiusKm = 20;
+
+
+private getPrecioParaInfoWindow(station: Gasolinera): number {
+  const p: any = (station as any).precios;
+
+  // Caso 1: ya es un número
+  if (typeof p === 'number') return p;
+
+  // Caso 2: string "1.509" o "1,509"
+  if (typeof p === 'string') {
+    const n = parseFloat(p.replace(',', '.'));
+    return Number.isFinite(n) ? n : 0;
+  }
+
+  // Caso 3: objeto por tipo de combustible (muy típico)
+  // Ej: precios = { "Gasolina 95 E5": 1.509, "Gasóleo A": 1.459 }
+  if (p && typeof p === 'object' && !Array.isArray(p)) {
+    const key = this.filters?.fuelType; // combustible seleccionado en filtros
+    const val = key ? p[key] : undefined;
+
+    if (val != null) {
+      const n = typeof val === 'string' ? parseFloat(val.replace(',', '.')) : Number(val);
+      return Number.isFinite(n) ? n : 0;
+    }
+
+    // fallback: primer valor numérico que encuentre
+    for (const k of Object.keys(p)) {
+      const v = p[k];
+      const n = typeof v === 'string' ? parseFloat(v.replace(',', '.')) : Number(v);
+      if (Number.isFinite(n)) return n;
+    }
+  }
+
+  // Caso 4: array (menos probable)
+  if (Array.isArray(p) && p.length > 0) {
+    const v = p[0];
+    const n = typeof v === 'string' ? parseFloat(v.replace(',', '.')) : Number(v);
+    return Number.isFinite(n) ? n : 0;
+  }
+
+  return 0;
+}
+
+
+
+
 
   // =========================================================
   // ✅ MAPA (origen/destino/selección + fit bounds)
   // =========================================================
-
-  
   @ViewChild(MapInfoWindow) infoWindow?: MapInfoWindow;
 
-selectedInfoForMap: {
-  rotulo: string;
-  direccion: string;
-  precio: number;
-  horario: string;
-} | null = null;
+  // ✅ Añadimos latitud/longitud para poder generar "Ir a Maps" bien
+  selectedInfoForMap: {
+    rotulo: string;
+    direccion: string;
+    precio: number;
+    horario: string;
+    latitud?: number;
+    longitud?: number;
+  } | null = null;
+
+  // ✅ NUEVO: Link "Ir a Maps" para el InfoWindow
+  getGoogleMapsLink(info: {
+    direccion?: string;
+    rotulo?: string;
+    latitud?: number;
+    longitud?: number;
+    lat?: number;
+    lng?: number;
+  } | null): string {
+    if (!info) return 'https://www.google.com/maps';
+
+    // Preferimos coordenadas si existen
+    const lat = (info as any).lat ?? info.latitud;
+    const lng = (info as any).lng ?? info.longitud;
+
+    if (lat != null && lng != null) {
+      return `https://www.google.com/maps?q=${lat},${lng}`;
+    }
+
+    // Fallback por dirección o rótulo
+    const q = encodeURIComponent(info.direccion ?? info.rotulo ?? '');
+    return `https://www.google.com/maps/search/?api=1&query=${q}`;
+  } 
 
 
 onStationMarkerClick(marker: MapMarker, station: Gasolinera): void {
   this.onGasolineraSeleccionada(station, false);
 
+  const precioElegido = this.getPrecioParaInfoWindow(station);
+
   this.selectedInfoForMap = {
-    rotulo: station.rotulo || 'Gasolinera',
-    direccion: this.formatAddress(station as any),
-    precio: this.obtenerPrecioRelevante(station),
-    horario: station.horario || ''
+    rotulo: station.rotulo,
+    direccion: station.direccion,
+    precio: precioElegido,
+    horario: station.horario,
+    latitud: station.latitud,
+    longitud: station.longitud
   };
 
   this.cd.detectChanges();
@@ -783,114 +859,143 @@ setModo(modo: 'buscar' | 'ruta'): void {
   // ---------------------------
   // LOCATION
   // ---------------------------
-  obtenerUbicacion(): void {
-    this.geolocationService
-      .getCurrentLocation()
-      .then((nuevaUbicacion) => {
-        this.ubicacionUsuario = {
-          latitud: nuevaUbicacion.latitud,
-          longitud: nuevaUbicacion.longitud,
-          calle: nuevaUbicacion.calle || '',
-          numero: nuevaUbicacion.numero || '',
-          ciudad: nuevaUbicacion.ciudad || 'Ubicación actual',
-          provincia: nuevaUbicacion.provincia || '',
-          direccionCompleta: nuevaUbicacion.direccionCompleta || '',
-        };
+obtenerUbicacion(): void {
+  this.geolocationService
+    .getCurrentLocation()
+    .then((nuevaUbicacion) => {
+      this.ubicacionUsuario = {
+        latitud: nuevaUbicacion.latitud,
+        longitud: nuevaUbicacion.longitud,
+        calle: nuevaUbicacion.calle || '',
+        numero: nuevaUbicacion.numero || '',
+       ciudad: nuevaUbicacion.ciudad || '',
+        provincia: nuevaUbicacion.provincia || '',
+        direccionCompleta: nuevaUbicacion.direccionCompleta || '',
+      };
 
-        this.storageService.guardarUbicacion(this.ubicacionUsuario);
+      this.storageService.guardarUbicacion(this.ubicacionUsuario);
 
-        // ✅ Actualiza marcador de origen
-        this.markerOrigen = { lat: this.ubicacionUsuario.latitud, lng: this.ubicacionUsuario.longitud };
-        this.mapCenter = { ...this.markerOrigen };
-        this.mapZoom = 11;
-        setTimeout(() => this.fitMapToMarkers(), 80);
-      })
-      .catch((error) => {
-        alert(`Error obteniendo ubicación: ${error.message}`);
-      });
-  }
+      // ✅ Actualiza marcador de origen
+      this.markerOrigen = { lat: this.ubicacionUsuario.latitud, lng: this.ubicacionUsuario.longitud };
+      this.mapCenter = { ...this.markerOrigen };
+      this.mapZoom = 11;
+      setTimeout(() => this.fitMapToMarkers(), 80);
+    })
+    .catch((error) => {
+      alert(`Error obteniendo ubicación: ${error.message}`);
+    });
+}
 
   // ---------------------------
   // SEARCH ENTRYPOINT
   // ---------------------------
-  async ejecutarBusqueda(): Promise<void> {
-    if (!this.ubicacionUsuario.ciudad && !this.ubicacionUsuario.calle) {
-      alert('Por favor, ingresa una ubicación de inicio');
-      return;
-    }
 
-    if (this.modoSeleccionado === 'ruta' && !this.destino.ciudad && !this.destino.calle) {
-      alert('En modo ruta, ingresa una ubicación de destino');
-      return;
-    }
 
-    if (this.gasolineras.length === 0) {
-      this.error = 'Cargando gasolineras...';
-      this.busquedaEnCurso = true;
+private async ensureOrigenCoords(): Promise<void> {
+  const ll = await this.resolveLatLngFromUbicacion(this.ubicacionUsuario);
 
-      try {
-        await new Promise<void>((resolve, reject) => {
-          if (this.gasolineras.length > 0) {
-            resolve();
-          } else {
-            let attempts = 0;
-            const maxAttempts = 100;
+  this.ubicacionUsuario.latitud = ll.lat;
+  this.ubicacionUsuario.longitud = ll.lng;
 
-            const checkInterval = setInterval(() => {
-              attempts++;
-              if (this.gasolineras.length > 0) {
-                clearInterval(checkInterval);
-                resolve();
-              } else if (attempts >= maxAttempts) {
-                clearInterval(checkInterval);
-                reject(new Error('No se pudieron cargar las gasolineras después de 10 segundos'));
-              }
-            }, 100);
-          }
-        });
+  this.storageService.guardarUbicacion(this.ubicacionUsuario);
 
-        this.error = null;
-      } catch (e: any) {
-        this.error = e?.message ?? 'Error al cargar las gasolineras. Intenta recargar la página.';
-        this.busquedaEnCurso = false;
-        return;
-      }
-    }
+  this.markerOrigen = { lat: ll.lat, lng: ll.lng };
+  this.mapCenter = { ...this.markerOrigen };
+  this.mapZoom = 11;
+  setTimeout(() => this.fitMapToMarkers(), 80);
+}
 
+
+async ejecutarBusqueda(): Promise<void> {
+  // ✅ Acepta direccionCompleta o (ciudad/calle)
+  const tieneInicio =
+    !!(this.ubicacionUsuario?.direccionCompleta?.trim()) ||
+    !!(this.ubicacionUsuario?.ciudad?.trim()) ||
+    !!(this.ubicacionUsuario?.calle?.trim());
+
+  if (!tieneInicio) {
+    alert('Por favor, ingresa una ubicación de inicio');
+    return;
+  }
+
+  const tieneDestino =
+    !!(this.destino?.direccionCompleta?.trim()) ||
+    !!(this.destino?.ciudad?.trim()) ||
+    !!(this.destino?.calle?.trim());
+
+  if (this.modoSeleccionado === 'ruta' && !tieneDestino) {
+    alert('En modo ruta, ingresa una ubicación de destino');
+    return;
+  }
+
+  // ✅ Asegura que ya hay dataset
+  if (this.gasolineras.length === 0) {
+    this.error = 'Cargando gasolineras...';
     this.busquedaEnCurso = true;
-    this.error = null;
-    this.filters = { ...this.filtersTemporales };
 
     try {
-      if (this.modoSeleccionado === 'buscar') {
-        this.ejecutarBusquedaLocal();
-      } else {
-        await this.ejecutarBusquedaEnRuta();
-      }
+      await new Promise<void>((resolve, reject) => {
+        let attempts = 0;
+        const maxAttempts = 100;
 
-      this.mostrarResultados = true;
-
-      // ✅ Marcar gasolineras resultado con estrella
-      this.buildStationMarkersFromResults();
-
-      if (this.gasolinerasFiltradas.length > 0) {
-        this.acordeonAbierto.resultados = true;
-        setTimeout(() => {
-          const elementoResultados = document.getElementById('resultados-container');
-          if (elementoResultados) {
-            elementoResultados.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        const checkInterval = setInterval(() => {
+          attempts++;
+          if (this.gasolineras.length > 0) {
+            clearInterval(checkInterval);
+            resolve();
+          } else if (attempts >= maxAttempts) {
+            clearInterval(checkInterval);
+            reject(new Error('No se pudieron cargar las gasolineras después de 10 segundos'));
           }
-        }, 300);
-      }
-
-      this.storageService.guardarFiltros(this.filters);
-      setTimeout(() => this.checkScrollNeeded(), 500);
+        }, 100);
+      });
+      this.error = null;
     } catch (e: any) {
-      this.error = e?.message ?? 'Error en la búsqueda.';
-    } finally {
+      this.error = e?.message ?? 'Error al cargar las gasolineras. Intenta recargar la página.';
       this.busquedaEnCurso = false;
+      return;
     }
   }
+
+  this.busquedaEnCurso = true;
+  this.error = null;
+
+  // ✅ CLAVE: usa siempre los filtros temporales que vienen del componente
+  this.filters = { ...this.filtersTemporales };
+
+  try {
+    // ✅ CLAVE: en ambos modos, asegura coordenadas de ORIGEN antes de usar distancias
+    await this.ensureOrigenCoords();
+
+    if (this.modoSeleccionado === 'buscar') {
+      this.ejecutarBusquedaLocal();
+    } else {
+      await this.ejecutarBusquedaEnRuta();
+    }
+
+    this.mostrarResultados = true;
+    this.buildStationMarkersFromResults();
+
+    if (this.gasolinerasFiltradas.length > 0) {
+      this.acordeonAbierto.resultados = true;
+      setTimeout(() => {
+        const elementoResultados = document.getElementById('resultados-container');
+        if (elementoResultados) {
+          elementoResultados.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        }
+      }, 300);
+    }
+
+    this.storageService.guardarFiltros(this.filters);
+    setTimeout(() => this.checkScrollNeeded(), 500);
+  } catch (e: any) {
+    // ✅ Si el geocode falla, aquí lo vas a ver
+    this.error = e?.message ?? 'Error en la búsqueda.';
+  } finally {
+    this.busquedaEnCurso = false;
+  }
+}
+
 
   private ejecutarBusquedaLocal(): void {
     this.aplicarFilters();
@@ -942,27 +1047,41 @@ setModo(modo: 'buscar' | 'ruta'): void {
   // ---------------------------
   // FILTERS (local / modo buscar)
   // ---------------------------
+
   aplicarFilters(): void {
-    if (!this.gasolineras.length) return;
+  if (!this.gasolineras.length) return;
 
-    this.gasolinerasFiltradas = [...this.gasolineras];
+  // ✅ radio efectivo = slider manda, autonomía solo recorta si es menor
+  const sliderKm = Number(this.filters.maxDistance);
+  const autonomiaKm = Number(this.kmDisponiblesUsuario);
 
-    // ✅ Autonomía en modo buscar: si es 0 => ilimitada (no filtra)
-    if (this.kmDisponiblesUsuario > 0) {
-      this.gasolinerasFiltradas = this.gasolinerasFiltradas.filter((gasolinera) => {
-        const distanciaKm = this.gasolineraService.calcularDistancia(
-          this.ubicacionUsuario.latitud,
-          this.ubicacionUsuario.longitud,
-          gasolinera.latitud,
-          gasolinera.longitud
-        );
-        return distanciaKm <= this.kmDisponiblesUsuario;
-      });
-    }
+  const sliderValido = Number.isFinite(sliderKm) && sliderKm > 0;
+  const autonomiaValida = Number.isFinite(autonomiaKm) && autonomiaKm > 0;
 
-    this.ordenarGasolineras();
-    setTimeout(() => this.checkScrollNeeded(), 100);
-  }
+  let radioEfectivo: number | null = null;
+
+  if (sliderValido && autonomiaValida) radioEfectivo = Math.min(sliderKm, autonomiaKm);
+  else if (sliderValido) radioEfectivo = sliderKm;
+  else if (autonomiaValida) radioEfectivo = autonomiaKm;
+  else radioEfectivo = null; // sin límite
+
+  const filtrosAplicados = {
+    ...this.filters,
+    // si no hay límite, pon un número muy grande (para no romper service)
+    maxDistance: radioEfectivo ?? 999999,
+  };
+
+  // ✅ CLAVE: aquí se aplican empresas, precio, fuelType, onlyOpen, etc.
+  this.gasolinerasFiltradas = this.gasolineraService.filtrarGasolineras(
+    this.gasolineras,
+    filtrosAplicados,
+    this.ubicacionUsuario
+  );
+
+  this.ordenarGasolineras();
+  setTimeout(() => this.checkScrollNeeded(), 100);
+}
+
 
   ordenarGasolineras(): void {
     this.gasolinerasFiltradas.forEach((g) => {
@@ -1013,9 +1132,13 @@ setModo(modo: 'buscar' | 'ruta'): void {
     }
   }
 
-  onFiltersCambiados(nuevosFilters: Filters): void {
-    this.filtersTemporales = nuevosFilters;
-  }
+onFiltersCambiados(nuevos: any): void {
+  // ✅ guarda SIEMPRE lo que viene del componente
+  this.filtersTemporales = { ...nuevos };
+
+  // opcional: si quieres que el UI se vea “sincronizado” aunque no pulses buscar
+   this.filters = { ...this.filtersTemporales };
+}
 
 onGasolineraSeleccionada(g: Gasolinera, ajustarMapa: boolean = true): void {
   this.gasolineraSeleccionada = g;
@@ -1662,53 +1785,79 @@ onGasolineraSeleccionada(g: Gasolinera, ajustarMapa: boolean = true): void {
     return Math.sqrt(dx * dx + dy * dy);
   }
 
+
+  onInicioAddressChanged(): void {
+  this.ubicacionUsuario.latitud = 0;
+  this.ubicacionUsuario.longitud = 0;
+  this.markerOrigen = undefined;
+}
+
+
+onDestinoAddressChanged(): void {
+  this.destino.latitud = 0;
+  this.destino.longitud = 0;
+  this.markerDestino = undefined;
+}
+
+
   // =========================================================
   // ✅ Geocoding + Routes
   //   - Geocoding: SIEMPRE Nominatim
   //   - Routes: GoogleRoutesService si hay key (con fallback)
   // =========================================================
 
-  private async resolveLatLngFromUbicacion(u: Ubicacion): Promise<LatLng> {
-    if (Number.isFinite(u.latitud) && Number.isFinite(u.longitud) && u.latitud !== 0 && u.longitud !== 0) {
-      return { lat: u.latitud, lng: u.longitud };
-    }
+private async resolveLatLngFromUbicacion(u: Ubicacion): Promise<{ lat: number; lng: number }> {
+  // Si ya hay coords válidas, las usamos
+  if (Number.isFinite(u.latitud) && Number.isFinite(u.longitud) && u.latitud !== 0 && u.longitud !== 0) {
+    return { lat: u.latitud, lng: u.longitud };
+  }
 
-    const texto = this.formatAddress(u);
-    if (!texto.trim()) throw new Error('Dirección inválida para geocodificar.');
+  const texto = this.formatAddress(u);
+  if (!texto.trim()) throw new Error('Dirección inválida para geocodificar.');
 
-    try {
-      const r = await this.nominatimGeocode(texto);
-      if (!r || !Number.isFinite(r.lat) || !Number.isFinite(r.lng) || (r.lat === 0 && r.lng === 0)) {
-        throw new Error('Nominatim no devolvió coordenadas válidas.');
-      }
+  // 1) Intento Nominatim
+  try {
+    const r = await this.nominatimGeocode(texto);
+    if (Number.isFinite(r.lat) && Number.isFinite(r.lng) && !(r.lat === 0 && r.lng === 0)) {
       return r;
-    } catch (e: any) {
-      console.warn('⚠️ Nominatim Geocoding falló:', {
-        address: texto,
-        msg: e?.message ?? String(e),
-      });
-      throw e;
     }
+  } catch (e) {
+    console.warn('⚠️ Nominatim falló, probando Google Geocoder...', e);
   }
 
-  private formatAddress(u: Ubicacion): string {
-    const full = (u.direccionCompleta || '').trim();
-    if (full) return full;
+  // 2) Fallback Google (mismo “estilo” que en ruta)
+  const g = await this.googleGeocode(texto);
+  return g;
+}
 
-    const parts = [u.calle, u.numero, u.ciudad, u.provincia].filter(Boolean);
-    return parts.join(', ');
+
+private formatAddress(u: Ubicacion): string {
+  const full = (u.direccionCompleta || '').trim();
+  if (full) return full;
+
+  const parts = [u.calle, u.numero, u.ciudad, u.provincia].filter(Boolean);
+  return parts.join(', ');
+}
+
+private async nominatimGeocode(address: string): Promise<LatLng> {
+  const url =
+    'https://nominatim.openstreetmap.org/search?format=json&limit=1&addressdetails=1&countrycodes=es&accept-language=es&q=' +
+    encodeURIComponent(address);
+
+  const res: any = await firstValueFrom(this.http.get(url));
+  const item = res?.[0];
+  if (!item) throw new Error('No se pudo geocodificar la dirección (Nominatim).');
+
+  const lat = parseFloat(item.lat);
+  const lng = parseFloat(item.lon);
+
+  if (!Number.isFinite(lat) || !Number.isFinite(lng)) {
+    throw new Error('Nominatim devolvió coordenadas no numéricas.');
   }
 
-  private async nominatimGeocode(address: string): Promise<LatLng> {
-    const url =
-      'https://nominatim.openstreetmap.org/search?format=json&limit=1&accept-language=es&q=' + encodeURIComponent(address);
+  return { lat, lng };
+}
 
-    const res: any = await firstValueFrom(this.http.get(url));
-    const item = res?.[0];
-    if (!item) throw new Error('No se pudo geocodificar la dirección (Nominatim).');
-
-    return { lat: parseFloat(item.lat), lng: parseFloat(item.lon) };
-  }
 
   private async getRouteBase(origen: LatLng, destino: LatLng): Promise<RouteBaseInfo> {
     if (!this.hasGoogleKey) {
@@ -1863,5 +2012,30 @@ private compareBySort(a: Gasolinera, b: Gasolinera, filtros: Filters): number {
       return pa - pb;
     }
   }
+
+
+  private googleGeocode(address: string): Promise<{ lat: number; lng: number }> {
+  return new Promise((resolve, reject) => {
+    // @ts-ignore
+    if (!(window as any).google?.maps?.Geocoder) {
+      reject(new Error('Google Maps Geocoder no está disponible (API no cargada).'));
+      return;
+    }
+
+    // @ts-ignore
+    const geocoder = new google.maps.Geocoder();
+
+    geocoder.geocode({ address, region: 'ES' }, (results: any, status: any) => {
+      if (status !== 'OK' || !results?.length) {
+        reject(new Error(`Google Geocoding falló: ${status}`));
+        return;
+      }
+
+      const loc = results[0].geometry.location;
+      resolve({ lat: loc.lat(), lng: loc.lng() });
+    });
+  });
+}
+
 }
 

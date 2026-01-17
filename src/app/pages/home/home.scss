@@ -8,14 +8,12 @@
   padding: 30px 20px;
   min-height: 100vh;
   background: var(--bg-primary);
-  padding-top: 20px; 
+  padding-top: 20px;
 }
 
 /* =========================================================
   Datos de perfil
 ========================================================= */
-
-
 
 /* =========================================================
    CARD PERFIL (mismo look que acordeones)
@@ -25,7 +23,7 @@
   margin: 18px 0 22px;
   padding: 22px 22px;
 
-  background: var(--bg-card); 
+  background: var(--bg-card);
   border: 1px solid var(--border-color);
   border-radius: var(--radius-lg);
 
@@ -67,8 +65,8 @@
 /* Valor SIN negrita (lo que quieres) */
 .datos-perfil span {
   color: var(--text-primary);
-  font-weight: 400; 
-  opacity: 0.95;    
+  font-weight: 400;
+  opacity: 0.95;
 }
 
 /* Video */
@@ -96,13 +94,6 @@
     justify-content: center;
   }
 }
-
-
-
-
-
-
-
 
 /* =========================================================
    TOP BAR (logo izquierda + links derecha) - FIXED
@@ -795,3 +786,283 @@
     grid-template-columns: 1fr;
   }
 }
+
+/* =========================================================
+   ✅ GOOGLE MAPS INFOWINDOW (DARK THEME + ESTETICA PROYECTO)
+   (FUERA del @media para que aplique siempre)
+========================================================= */
+
+:host ::ng-deep .gm-style .gm-style-iw-c {
+  background: rgba(18, 18, 18, 0.96) !important;
+  color: #fff !important;
+  border: 1px solid rgba(255, 148, 77, 0.18) !important;
+  border-radius: 16px !important;
+  box-shadow: 0 12px 35px rgba(0, 0, 0, 0.55) !important;
+  padding: 0 !important;
+}
+
+/* Asegura que TODO el texto dentro salga blanco (Google mete estilos propios) */
+:host ::ng-deep .gm-style .gm-style-iw,
+:host ::ng-deep .gm-style .gm-style-iw * {
+  color: #fff !important;
+}
+
+/* Zona interna */
+:host ::ng-deep .gm-style .gm-style-iw-d {
+  overflow: hidden !important;
+}
+
+/* Triángulo */
+:host ::ng-deep .gm-style .gm-style-iw-tc::after {
+  background: rgba(18, 18, 18, 0.96) !important;
+  border: 1px solid rgba(255, 148, 77, 0.18) !important;
+  box-shadow: none !important;
+}
+
+/* Botón X */
+:host ::ng-deep .gm-ui-hover-effect {
+  filter: invert(1) !important;
+  opacity: 0.9 !important;
+}
+:host ::ng-deep .gm-ui-hover-effect:hover {
+  opacity: 1 !important;
+}
+
+/* Contenido */
+:host ::ng-deep .gf-iw {
+  font-family: 'Manrope', system-ui, -apple-system, sans-serif !important;
+  padding: 14px 16px !important;
+  max-width: 260px;
+}
+
+:host ::ng-deep .gf-iw .gf-title {
+  margin: 0 0 8px 0;
+  font-weight: 900;
+  font-size: 14px;
+  letter-spacing: 0.2px;
+}
+
+:host ::ng-deep .gf-iw .gf-sub {
+  margin: 0 0 10px 0;
+  font-size: 12.5px;
+  color: rgba(255, 255, 255, 0.78) !important;
+  line-height: 1.35;
+}
+
+:host ::ng-deep .gf-iw .gf-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 10px;
+  border-radius: 999px;
+  background: rgba(255, 148, 77, 0.10);
+  border: 1px solid rgba(255, 148, 77, 0.20);
+  font-size: 12.5px;
+}
+
+:host ::ng-deep .gf-iw .gf-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 12px;
+  padding-top: 10px;
+  border-top: 1px solid rgba(255, 148, 77, 0.14);
+
+  color: var(--accent-orange) !important;
+  font-weight: 800;
+  font-size: 13px;
+  text-decoration: none !important;
+}
+
+:host ::ng-deep .gf-iw .gf-link:hover {
+  color: #fff !important;
+}
+
+/* =========================================================
+   ✅ Google Maps InfoWindow - Ajuste fino márgenes + estilo GF
+========================================================= */
+
+/* Caja exterior real del globo */
+
+:host ::ng-deep .gm-style .gm-style-iw-c {
+  padding: 10px 12px 14px !important; /* 👈 más padding abajo */
+  max-width: 340px !important;
+}
+
+/* Wrapper interno que Google limita con max-height y overflow */
+:host ::ng-deep .gm-style .gm-style-iw-d {
+  overflow: visible !important;     /* 👈 clave */
+  max-height: none !important;      /* 👈 clave */
+  padding: 0 !important;
+  margin: 0 !important;
+}
+
+/* A veces Google usa este wrapper (según versión) */
+:host ::ng-deep .gm-style .gm-style-iw-ch {
+  overflow: visible !important;
+}
+
+/* Triangulito */
+:host ::ng-deep .gm-style .gm-style-iw-tc::after {
+  background: rgba(18, 18, 18, 0.96) !important;
+  border: 1px solid rgba(255, 148, 77, 0.20) !important;
+  box-shadow: none !important;
+}
+
+/* Botón cerrar */
+:host ::ng-deep .gm-ui-hover-effect {
+  filter: invert(1) !important;
+  opacity: 0.9 !important;
+}
+
+/* Sube un poco el contenido (menos padding superior dentro) */
+:host ::ng-deep .gf-iw {
+  padding: 4px 6px 10px !important; /* 👈 menos arriba, más abajo */
+}
+
+/* También puede meter un max-height inline en el propio contenedor */
+:host ::ng-deep .gm-style .gm-style-iw-c[style] {
+  max-height: none !important;
+}
+:host ::ng-deep .gm-ui-hover-effect:hover {
+  opacity: 1 !important;
+}
+
+/* =======================
+   Contenido custom (GF)
+======================= */
+
+:host ::ng-deep .gf-iw {
+  font-family: 'Manrope', system-ui, -apple-system, sans-serif !important;
+
+  /* 👇 padding del contenido, ya sin interferencias */
+  padding: 6px 6px 8px !important;
+
+  min-width: 240px;
+  max-width: 320px;
+}
+
+/* Título (empresa) en naranja */
+:host ::ng-deep .gf-iw .gf-title {
+  margin: 0 0 8px 0;
+  font-weight: 900;
+  font-size: 15px;
+  letter-spacing: 0.2px;
+
+  color: var(--accent-orange) !important;
+
+  /* look “cabecera” */
+  padding-bottom: 8px;
+  border-bottom: 1px solid rgba(255, 148, 77, 0.16);
+}
+
+/* Dirección */
+:host ::ng-deep .gf-iw .gf-sub {
+  margin: 10px 0 12px 0;
+  font-size: 12.5px;
+  line-height: 1.35;
+  color: rgba(255, 255, 255, 0.78) !important;
+}
+
+/* Filas tipo “lista” */
+:host ::ng-deep .gf-iw .gf-row {
+  display: grid;
+  grid-template-columns: 18px auto 1fr;
+  gap: 10px;
+  align-items: baseline;
+
+  font-size: 13px;
+  margin: 8px 0;
+}
+
+/* Iconito */
+:host ::ng-deep .gf-iw .gf-ico {
+  opacity: 0.95;
+}
+
+/* Etiqueta */
+:host ::ng-deep .gf-iw .gf-label {
+  color: rgba(255, 255, 255, 0.78) !important;
+  font-weight: 700;
+}
+
+/* Valor */
+:host ::ng-deep .gf-iw .gf-value {
+  justify-self: end;
+  font-weight: 900;
+  color: rgba(255, 255, 255, 0.95) !important;
+}
+
+/* Link "Ir a Maps" */
+:host ::ng-deep .gf-iw .gf-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+
+  margin-top: 12px;
+  padding-top: 10px;
+  border-top: 1px solid rgba(255, 148, 77, 0.14);
+
+  color: var(--accent-orange) !important;
+  font-weight: 900;
+  font-size: 13px;
+  text-decoration: none !important;
+}
+
+:host ::ng-deep .gf-iw .gf-link:hover {
+  color: #fff !important;
+}
+
+
+/* =========================================================
+   BOTÓN "IR A GOOGLE MAPS" – InfoWindow
+========================================================= */
+
+:host ::ng-deep .gf-iw .gf-maps-btn {
+  display: flex; 
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+
+  margin-top: 14px;
+  padding: 10px 14px;
+
+  width: 100%;
+
+  background: linear-gradient(
+    135deg,
+    rgba(255, 148, 77, 0.22),
+    rgba(255, 148, 77, 0.12)
+  );
+
+  border: 1px solid rgba(255, 148, 77, 0.35);
+  border-radius: 12px;
+
+  color: var(--accent-orange) !important;
+  font-weight: 900;
+  font-size: 13.5px;
+  letter-spacing: 0.2px;
+
+  text-decoration: none !important;
+
+  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.35);
+  transition: all 0.25s ease;
+}
+
+:host ::ng-deep .gf-iw .gf-maps-btn:hover {
+  background: linear-gradient(
+    135deg,
+    var(--accent-orange),
+    var(--accent-orange-dark)
+  );
+
+  color: #fff !important;
+  transform: translateY(-2px);
+  box-shadow: 0 10px 28px rgba(255, 148, 77, 0.45);
+}
+
+:host ::ng-deep .gf-iw .gf-maps-btn:active {
+  transform: translateY(0);
+}
+
+

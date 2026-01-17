@@ -326,4 +326,109 @@ router-outlet + * {
       right: 12px;
     }
   }
+
+
+/* ===== Google Maps InfoWindow (tema oscuro) ===== */
+.gm-style .gm-style-iw-c {
+  background: rgba(27, 27, 27, 0.96) !important;
+  color: #fff !important;
+
+  border: 1px solid rgba(255, 148, 77, 0.18) !important;
+  border-radius: 16px !important;
+
+  box-shadow: 0 12px 35px rgba(0, 0, 0, 0.55) !important;
+  padding: 0 !important; /* para controlar padding dentro */
+}
+
+/* Contenido scrollable del InfoWindow */
+.gm-style .gm-style-iw-d {
+  overflow: hidden !important; /* evita scrollbar feo si no quieres */
+  color: #fff !important;
+}
+
+/* El triangulito/“punta” del InfoWindow */
+.gm-style .gm-style-iw-tc::after {
+  background: rgba(27, 27, 27, 0.96) !important;
+  border: 1px solid rgba(255, 148, 77, 0.18) !important;
+  box-shadow: none !important;
+}
+
+/* Botón X cerrar */
+.gm-ui-hover-effect {
+  filter: invert(1) !important;   /* convierte el icono en blanco */
+  opacity: 0.85 !important;
+}
+.gm-ui-hover-effect:hover {
+  opacity: 1 !important;
+}
+
+/* Tipografías dentro */
+.gm-style .gf-iw {
+  font-family: 'Manrope', system-ui, -apple-system, sans-serif !important;
+  color: #fff !important;
+  padding: 14px 16px !important;
+  min-width: 240px;
+}
+
+/* Título */
+.gm-style .gf-iw .gf-title {
+  font-weight: 800;
+  font-size: 14px;
+  margin: 0 0 8px 0;
+  color: #fff !important;
+  letter-spacing: 0.2px;
+}
+
+/* Línea secundaria */
+.gm-style .gf-iw .gf-sub {
+  font-size: 12.5px;
+  color: rgba(255, 255, 255, 0.78) !important;
+  margin: 0 0 10px 0;
+}
+
+/* Filas */
+.gm-style .gf-iw .gf-row {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+  font-size: 13px;
+  color: rgba(255, 255, 255, 0.92) !important;
+  margin: 6px 0;
+}
+
+/* “Chips” */
+.gm-style .gf-iw .gf-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 10px;
+  border-radius: 999px;
+  background: rgba(255, 148, 77, 0.10);
+  border: 1px solid rgba(255, 148, 77, 0.20);
+  color: rgba(255, 255, 255, 0.95) !important;
+  font-size: 12.5px;
+}
+
+/* Link "Ir a Maps" */
+.gm-style .gf-iw .gf-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 12px;
+  padding-top: 10px;
+  border-top: 1px solid rgba(255, 148, 77, 0.14);
+
+  color: #ff944d !important;
+  font-weight: 700;
+  font-size: 13px;
+  text-decoration: none !important;
+}
+
+.gm-style .gf-iw .gf-link:hover {
+  color: #fff !important;
+  text-decoration: none !important;
+}
+
+
+
 }

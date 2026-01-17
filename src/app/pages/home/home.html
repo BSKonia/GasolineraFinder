@@ -29,7 +29,7 @@
       <!-- Datos del perfil -->
       <div class="datos-perfil">
         <h2>Perfil de Usuario</h2>
-        <p><strong>Nombre:</strong> <span> Carlos</span></p>
+        <p><strong>Nombre:</strong> <span> Mario</span></p>
         <p><strong>Marca del coche:</strong> <span> BMW</span></p>
         <p><strong>Modelo:</strong> <span> M4 GTS 2016</span></p>
         <p><strong>Consumo:</strong> <span> 6.5 L/100km</span></p>
@@ -69,27 +69,51 @@
           <div class="campos-grid">
             <div class="campo-direccion">
               <label for="calleInicio">📏 Calle:</label>
-              <input id="calleInicio" [(ngModel)]="ubicacionUsuario.calle" placeholder="Ej: Gran Vía" />
+              <input
+                id="calleInicio"
+                [(ngModel)]="ubicacionUsuario.calle"
+                (ngModelChange)="onInicioAddressChanged()"
+                placeholder="Ej: Gran Vía"
+              />
             </div>
 
             <div class="campo-direccion">
               <label for="numeroInicio">🔢 Número:</label>
-              <input id="numeroInicio" [(ngModel)]="ubicacionUsuario.numero" placeholder="Ej: 28" />
+              <input
+                id="numeroInicio"
+                [(ngModel)]="ubicacionUsuario.numero"
+                (ngModelChange)="onInicioAddressChanged()"
+                placeholder="Ej: 28"
+              />
             </div>
 
             <div class="campo-direccion">
               <label for="ciudadInicio">🏙️ Ciudad:</label>
-              <input id="ciudadInicio" [(ngModel)]="ubicacionUsuario.ciudad" placeholder="Ej: Madrid" />
+              <input
+                id="ciudadInicio"
+                [(ngModel)]="ubicacionUsuario.ciudad"
+                (ngModelChange)="onInicioAddressChanged()"
+                placeholder="Ej: Madrid"
+              />
             </div>
 
             <div class="campo-direccion">
               <label for="provinciaInicio">🗺️ Provincia:</label>
-              <input id="provinciaInicio" [(ngModel)]="ubicacionUsuario.provincia" placeholder="Ej: Madrid" />
+              <input
+                id="provinciaInicio"
+                [(ngModel)]="ubicacionUsuario.provincia"
+                (ngModelChange)="onInicioAddressChanged()"
+                placeholder="Ej: Madrid"
+              />
             </div>
           </div>
 
           <div class="botones-accion-container">
-            <button (click)="obtenerUbicacion()" class="btn-ubicacion-elegante" title="Detectar mi ubicación automáticamente">
+            <button
+              (click)="obtenerUbicacion()"
+              class="btn-ubicacion-elegante"
+              title="Detectar mi ubicación automáticamente"
+            >
               <span class="btn-ubicacion-icono">📍</span>
               <span class="btn-ubicacion-texto">Mi ubicación</span>
             </button>
@@ -126,22 +150,42 @@
             <!-- Campos para la dirección de destino -->
             <div class="campo-direccion">
               <label for="calleDestino">📏 Calle:</label>
-              <input id="calleDestino" [(ngModel)]="destino.calle" placeholder="Ej: Avenida Diagonal" />
+              <input
+                id="calleDestino"
+                [(ngModel)]="destino.calle"
+                (ngModelChange)="onDestinoAddressChanged()"
+                placeholder="Ej: Avenida Diagonal"
+              />
             </div>
 
             <div class="campo-direccion">
               <label for="numeroDestino">🔢 Número:</label>
-              <input id="numeroDestino" [(ngModel)]="destino.numero" placeholder="Ej: 407" />
+              <input
+                id="numeroDestino"
+                [(ngModel)]="destino.numero"
+                (ngModelChange)="onDestinoAddressChanged()"
+                placeholder="Ej: 407"
+              />
             </div>
 
             <div class="campo-direccion">
               <label for="ciudadDestino">🏙️ Ciudad:</label>
-              <input id="ciudadDestino" [(ngModel)]="destino.ciudad" placeholder="Ej: Barcelona" />
+              <input
+                id="ciudadDestino"
+                [(ngModel)]="destino.ciudad"
+                (ngModelChange)="onDestinoAddressChanged()"
+                placeholder="Ej: Barcelona"
+              />
             </div>
 
             <div class="campo-direccion">
               <label for="provinciaDestino">🗺️ Provincia:</label>
-              <input id="provinciaDestino" [(ngModel)]="destino.provincia" placeholder="Ej: Barcelona" />
+              <input
+                id="provinciaDestino"
+                [(ngModel)]="destino.provincia"
+                (ngModelChange)="onDestinoAddressChanged()"
+                placeholder="Ej: Barcelona"
+              />
             </div>
           </div>
         </div>
@@ -249,17 +293,60 @@
        [options]="routePolylineOptions">
       </map-polyline>
 
-       <!-- ✅ Markers gasolineras (estrella) -->
+      <!-- ✅ Markers gasolineras (estrella) -->
       <map-marker
-       *ngFor="let m of stationMarkers"
+        *ngFor="let m of stationMarkers"
         #mkr="mapMarker"
         [position]="m.position"
         [options]="stationMarkerOptions"
         [title]="m.title"
         (mapClick)="onStationMarkerClick(mkr, m.station)">
-      </map-marker> 
+      </map-marker>
 
+      <map-info-window>
+        <div *ngIf="selectedInfoForMap" class="gf-iw">
 
+          <!-- TÍTULO -->
+          <div class="gf-title">
+            {{ selectedInfoForMap.rotulo }}
+          </div>
+
+          <!-- DIRECCIÓN -->
+          <div class="gf-sub">
+            {{ selectedInfoForMap.direccion }}
+          </div>
+
+          <!-- PRECIO -->
+          <div class="gf-row">
+            <span class="gf-ico">⛽</span>
+            <span class="gf-label">Precio</span>
+            <span class="gf-value">
+              {{ selectedInfoForMap.precio | number:'1.3-3' }} €/L
+            </span>
+          </div>
+
+          <!-- HORARIO -->
+          <div class="gf-row">
+            <span class="gf-ico">🕒</span>
+            <span class="gf-label">Horario</span>
+            <span class="gf-value">
+              {{ selectedInfoForMap.horario || 'No disponible' }}
+            </span>
+          </div>
+
+          <!-- BOTÓN IR A MAPS (ABAJO DEL TODO) -->
+          <a
+            *ngIf="selectedInfoForMap.latitud != null && selectedInfoForMap.longitud != null"
+            class="gf-maps-btn"
+            [href]="'https://www.google.com/maps?q=' + selectedInfoForMap.latitud + ',' + selectedInfoForMap.longitud"
+            target="_blank"
+            rel="noopener"
+          >
+            📍 Ver en Google Maps
+          </a>
+
+        </div>
+      </map-info-window>
 
     </google-map>
   </section>
@@ -340,11 +427,11 @@
   =========================== -->
   <section class="debug-panel" *ngIf="DEBUG_UI">
     <h3>🧪 Depuración (Modo Ruta)</h3>
-    
+
     <div class="debug-header">
       <div class="debug-status"
-           [class.running]="debugRuta.status === 'running'" 
-           [class.done]="debugRuta.status === 'done'" 
+           [class.running]="debugRuta.status === 'running'"
+           [class.done]="debugRuta.status === 'done'"
            [class.error]="debugRuta.status === 'error'">
         <strong>Estado:</strong> {{ debugRuta.status }}
       </div>
@@ -431,7 +518,7 @@
     </div>
 
     <div *ngIf="debugSections.enriched" class="debug-section">
-      <h4>5) Resultados enriquecidos (tabla)</h4> 
+      <h4>5) Resultados enriquecidos (tabla)</h4>
 
       <div *ngIf="(debugRuta.enriched?.results?.length ?? 0) === 0">
         <em>No hay filas enriquecidas aún.</em>

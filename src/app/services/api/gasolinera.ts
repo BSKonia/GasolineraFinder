@@ -75,69 +75,75 @@ export class GasolineraService {
     });
   }
 
-  private transformarDatosAPI(data: any): Gasolinera[] {
-    if (!data?.ListaEESSPrecio) {
-      console.log('⚠️ No hay ListaEESSPrecio en la respuesta');
-      return [];
-    }
-
-    const gasolineras: Gasolinera[] = data.ListaEESSPrecio.map((estacion: any) => {
-      const precioGasolina95 = this.parsearPrecio(estacion['Precio Gasolina 95 E5']);
-      const precioGasolina98 = this.parsearPrecio(estacion['Precio Gasolina 98 E5']);
-      const precioDiesel = this.parsearPrecio(estacion['Precio Gasóleo A']);
-      const precioDieselPremium = this.parsearPrecio(estacion['Precio Gasóleo Premium']);
-      const precioGLP = this.parsearPrecio(estacion['Precio Gases licuados del petróleo']);
-
-      const precios = {
-        'Gasolina 95 E5': precioGasolina95 || null,
-        'Gasolina 98 E5': precioGasolina98 || null,
-        'Gasóleo A': precioDiesel || null,
-        'Gasóleo Premium': precioDieselPremium || null,
-        GLP: precioGLP || null,
-      };
-
-      return {
-        id: estacion['IDEESS'] || '',
-        rotulo: estacion['Rótulo'] || '',
-        direccion: estacion['Dirección'] || '',
-        direccionCompleta: estacion['Dirección'] || '',
-        calle: estacion['Calle'] || '',
-        numero: estacion['Numero'] || '',
-        municipio: estacion['Municipio'] || '',
-        provincia: estacion['Provincia'] || '',
-        codigoPostal: estacion['C.P.'] || '',
-        latitud: this.parsearCoordenada(estacion['Latitud']),
-        longitud: this.parsearCoordenada(estacion['Longitud (WGS84)']),
-        localidad: estacion['Localidad'] || '',
-        margen: estacion['Margen'] || '',
-        tipoVenta: estacion['Tipo Venta'] || '',
-        horario: estacion['Horario'] || '',
-        remision: estacion['Remisión'] || '',
-        bioEtanol: estacion['BioEtanol'] || '',
-        esterMetilico: estacion['Éster metílico'] || '',
-        porcentajeBioEtanol: estacion['% BioEtanol'] || '',
-        porcentajeEsterMetilico: estacion['% Éster metílico'] || '',
-
-        // ✅ unificados
-        precios,
-
-        // ✅ precios “planos”
-        precioGasolina95,
-        precioGasolina98,
-        precioDiesel,
-        precioDieselPremium,
-        precioGLP,
-      };
-    });
-
-    // Filtrar gasolineras con coordenadas inválidas
-    const gasolinerasValidas = gasolineras.filter(
-      (g: Gasolinera) => g.latitud !== 0 && g.longitud !== 0
-    );
-
-    console.log(`✅ ${gasolinerasValidas.length} gasolineras válidas`);
-    return gasolinerasValidas;
+private transformarDatosAPI(data: any): Gasolinera[] {
+  if (!data?.ListaEESSPrecio) {
+    console.log('⚠️ No hay ListaEESSPrecio en la respuesta');
+    return [];
   }
+
+  const gasolineras: Gasolinera[] = data.ListaEESSPrecio.map((estacion: any) => {
+    const get = (k1: string, k2?: string) => estacion?.[k1] ?? (k2 ? estacion?.[k2] : undefined);
+
+    const precioGasolina95 = this.parsearPrecio(get('Precio Gasolina 95 E5'));
+    const precioGasolina98 = this.parsearPrecio(get('Precio Gasolina 98 E5'));
+
+    // ✅ Soporta las dos variantes (sin tilde / con tilde)
+    const precioDiesel = this.parsearPrecio(get('Precio Gasoleo A', 'Precio Gasóleo A'));
+    const precioDieselPremium = this.parsearPrecio(get('Precio Gasoleo Premium', 'Precio Gasóleo Premium'));
+
+    const precioGLP = this.parsearPrecio(get('Precio Gases licuados del petróleo'));
+
+    const precios = {
+      'Gasolina 95 E5': precioGasolina95 || null,
+      'Gasolina 98 E5': precioGasolina98 || null,
+      'Gasóleo A': precioDiesel || null,
+      'Gasóleo Premium': precioDieselPremium || null,
+      GLP: precioGLP || null,
+    };
+
+    return {
+      id: estacion['IDEESS'] || '',
+      rotulo: estacion['Rótulo'] || '',
+      direccion: estacion['Dirección'] || '',
+      direccionCompleta: estacion['Dirección'] || '',
+      calle: estacion['Calle'] || '',
+      numero: estacion['Numero'] || '',
+      municipio: estacion['Municipio'] || '',
+      provincia: estacion['Provincia'] || '',
+      codigoPostal: estacion['C.P.'] || '',
+      latitud: this.parsearCoordenada(estacion['Latitud']),
+      longitud: this.parsearCoordenada(estacion['Longitud (WGS84)']),
+      localidad: estacion['Localidad'] || '',
+      margen: estacion['Margen'] || '',
+      tipoVenta: estacion['Tipo Venta'] || '',
+      horario: estacion['Horario'] || '',
+      remision: estacion['Remisión'] || '',
+      bioEtanol: estacion['BioEtanol'] || '',
+      esterMetilico: estacion['Éster metílico'] || '',
+      porcentajeBioEtanol: estacion['% BioEtanol'] || '',
+      porcentajeEsterMetilico: estacion['% Éster metílico'] || '',
+
+      // ✅ unificados
+      precios,
+
+      // ✅ precios “planos”
+      precioGasolina95,
+      precioGasolina98,
+      precioDiesel,
+      precioDieselPremium,
+      precioGLP,
+    };
+  });
+
+  // Filtrar gasolineras con coordenadas inválidas
+  const gasolinerasValidas = gasolineras.filter(
+    (g: Gasolinera) => g.latitud !== 0 && g.longitud !== 0
+  );
+
+  console.log(`✅ ${gasolinerasValidas.length} gasolineras válidas`);
+  return gasolinerasValidas;
+}
+
 
   private parsearCoordenada(coordenada: string): number {
     if (!coordenada || coordenada.trim() === '') return 0;
