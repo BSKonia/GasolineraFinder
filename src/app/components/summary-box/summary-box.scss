@@ -241,8 +241,8 @@
   border-collapse: separate;
   border-spacing: 0;
   font-size: 13px;
-  min-width: 820px;            /* ✅ antes 900px */
-  table-layout: fixed;         /* ✅ CRUCIAL */
+  min-width: 820px; /* ✅ antes 900px */
+  table-layout: fixed; /* ✅ CRUCIAL */
 }
 
 /* CABECERA - TODOS LOS TÍTULOS CENTRADOS */
@@ -277,16 +277,14 @@
   word-wrap: break-word;
   overflow-wrap: break-word;
   white-space: normal;
-  overflow-wrap: anywhere;   /* rompe palabras largas si hace falta */
+  overflow-wrap: anywhere;
   word-break: break-word;
   overflow: hidden;
   text-overflow: ellipsis;
 }
 
 /* ========================= */
-/* ✅ DEFINICIÓN DE ANCHOS (MEJOR DISTRIBUIDOS) */
-/* - Dirección deja de pisar precio
-/* - Horario + Maps quedan compactos y sin hueco raro
+/* ✅ DEFINICIÓN DE ANCHOS */
 /* ========================= */
 
 /* Columna 1: EMPRESA */
@@ -297,7 +295,7 @@
   max-width: 130px;
 }
 
-/* Columna 2: DIRECCIÓN (más ancho y controlado) */
+/* Columna 2: DIRECCIÓN */
 .ruta-table th.col-dir,
 .ruta-table td.col-dir {
   width: 38%;
@@ -329,7 +327,7 @@
   max-width: 90px;
 }
 
-/* Horario más compacto */
+/* Horario compacto */
 .ruta-table th.col-horario,
 .ruta-table td.col-horario {
   width: 8%;
@@ -343,7 +341,7 @@
   line-height: 1.25;
 }
 
-/* ✅ Maps con más ancho real */
+/* Maps */
 .ruta-table th.col-maps,
 .ruta-table td.col-maps {
   width: 6%;
@@ -364,7 +362,7 @@
   padding: 0;
 }
 
-/* TÍTULO DEL CUBO (Km 0-20) */
+/* TÍTULO DEL CUBO */
 .bucket-title {
   background: rgba(255, 148, 77, 0.08);
 }
@@ -417,13 +415,12 @@
   white-space: nowrap;
 }
 
-/* ✅ Dirección: 2 líneas con clamp, SIN pisar precio */
+/* Dirección: clamp 2 líneas */
 .col-dir {
   color: var(--text-secondary);
   line-height: 1.35;
   font-size: 12.5px;
 
-  /* clamp 2 líneas */
   white-space: normal;
   display: -webkit-box;
   -webkit-line-clamp: 2;
@@ -451,12 +448,12 @@
   font-variant-numeric: tabular-nums;
 }
 
-/* ✅ Horario: compacto y que no rompa el layout */
+/* Horario */
 .col-horario {
   white-space: nowrap;
 }
 
-/* CHIP DE HORARIO - SOLO TEXTO */
+/* CHIP HORARIO */
 .horario-chip {
   display: inline-flex;
   align-items: center;
@@ -481,7 +478,6 @@
   content: none;
 }
 
-/* ✅ Botón maps más “slim” y sin romper */
 .maps-btn:hover {
   background: rgba(255, 148, 77, 0.08);
   border-color: rgba(255, 148, 77, 0.35);
@@ -502,19 +498,8 @@
   font-size: 12px;
 }
 
-
-.ruta-table th.col-maps,
-.ruta-table td.col-maps {
-  width: 92px;
-  min-width: 92px;
-  max-width: 92px;
-  padding-left: 6px;
-  padding-right: 6px;
-  text-align: center;
-}
-
 /* ==================== */
-/* RESPONSIVE */
+/* RESPONSIVE GENERAL */
 /* ==================== */
 
 @media (max-width: 900px) {
@@ -612,5 +597,196 @@
   .route-summary {
     flex-direction: column;
     gap: 8px;
+  }
+}
+
+/* =========================================================
+   ✅ RUTA: TABLA (DESKTOP) / TARJETAS (MÓVIL)
+   (ESTO VA FUERA DE @media 480, para que NO se duplique en desktop)
+========================================================= */
+
+/* Por defecto: desktop/tablet -> tabla */
+.ruta-only-mobile {
+  display: none;
+}
+
+.ruta-only-desktop {
+  display: block;
+}
+
+/* A partir de 820px consideramos “móvil” */
+@media (max-width: 820px) {
+  .ruta-only-desktop {
+    display: none !important;
+  }
+
+  .ruta-only-mobile {
+    display: block !important;
+  }
+
+  /* En móvil ya NO queremos el scroll horizontal de la tabla */
+  .ruta-table-wrap {
+    overflow: visible;
+  }
+}
+
+/* Cards wrapper */
+.ruta-cards-wrap {
+  margin-top: 12px;
+  display: grid;
+  gap: 14px;
+}
+
+/* Bucket contenedor */
+.ruta-bucket-card {
+  background: rgba(18, 18, 18, 0.5);
+  border: 1px solid rgba(255, 148, 77, 0.15);
+  border-radius: var(--radius-md);
+  overflow: hidden;
+}
+
+/* Header bucket */
+.ruta-bucket-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+
+  padding: 12px 14px;
+  background: rgba(255, 148, 77, 0.06);
+  border-bottom: 1px solid rgba(255, 148, 77, 0.14);
+}
+
+.ruta-bucket-header .bucket-count {
+  font-weight: 800;
+  font-size: 12px;
+  color: var(--text-secondary);
+  padding: 6px 10px;
+  border-radius: 999px;
+  border: 1px solid rgba(255, 148, 77, 0.18);
+  background: rgba(0, 0, 0, 0.2);
+}
+
+/* Grid de tarjetas */
+.ruta-cards {
+  display: grid;
+  gap: 12px;
+  padding: 12px;
+}
+
+.ruta-card {
+  background: rgba(255, 255, 255, 0.02);
+  border: 1px solid rgba(255, 148, 77, 0.12);
+  border-radius: 16px;
+  padding: 12px;
+  transition: all 0.2s ease;
+
+  &:hover {
+    background: rgba(255, 148, 77, 0.05);
+    border-color: rgba(255, 148, 77, 0.2);
+  }
+}
+
+/* Top: empresa + precio */
+.ruta-card-top {
+  display: flex;
+  justify-content: space-between;
+  gap: 10px;
+  align-items: baseline;
+}
+
+.ruta-card-empresa {
+  font-weight: 900;
+  color: var(--text-primary);
+  letter-spacing: 0.2px;
+}
+
+.ruta-card-precio {
+  font-weight: 900;
+  color: var(--accent-orange);
+  white-space: nowrap;
+}
+
+/* Dirección: 3 líneas máximo */
+.ruta-card-dir {
+  margin-top: 8px;
+  color: var(--text-secondary);
+  line-height: 1.35;
+
+  display: -webkit-box;
+  -webkit-line-clamp: 3;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+/* Meta: desvío/coste */
+.ruta-card-meta {
+  margin-top: 10px;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+}
+
+.meta-item {
+  background: rgba(0, 0, 0, 0.18);
+  border: 1px solid rgba(255, 148, 77, 0.12);
+  border-radius: 12px;
+  padding: 8px 10px;
+}
+
+.meta-label {
+  display: block;
+  font-size: 12px;
+  color: var(--text-secondary);
+  opacity: 0.9;
+}
+
+.meta-value {
+  display: block;
+  margin-top: 2px;
+  font-weight: 900;
+  color: var(--text-primary);
+}
+
+/* Bottom: horario + botón maps */
+.ruta-card-bottom {
+  margin-top: 12px;
+  display: flex;
+  justify-content: space-between;
+  gap: 10px;
+  align-items: center;
+}
+
+/* Chip en móvil */
+.horario-chip.mobile {
+  font-size: 12px;
+  white-space: nowrap;
+}
+
+.btn-open-maps {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 12px;
+  border-radius: 12px;
+  border: 1px solid rgba(255, 148, 77, 0.25);
+  background: rgba(255, 148, 77, 0.08);
+  color: var(--text-primary);
+  font-weight: 800;
+  cursor: pointer;
+  transition: all 0.2s ease;
+
+  &:hover {
+    background: rgba(255, 148, 77, 0.12);
+    border-color: rgba(255, 148, 77, 0.35);
+    transform: translateY(-1px);
+  }
+
+  &:active {
+    transform: translateY(0);
+  }
+
+  &.small {
+    padding: 8px 10px;
+    border-radius: 10px;
   }
 }

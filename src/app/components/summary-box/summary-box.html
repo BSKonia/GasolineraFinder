@@ -93,76 +93,137 @@
     </div>
   </div>
 
-  <!-- ✅ MODO RUTA: TABLA POR CUBOS -->
-  <div class="summary-section" *ngIf="modo === 'ruta' && stations.length > 0">
-    <h3 class="section-title">⛽ Gasolineras por km (ruta)</h3>
+  <!-- ✅ MODO RUTA: TABLA EN DESKTOP + CARDS EN MÓVIL -->
+<div class="summary-section" *ngIf="modo === 'ruta' && stations.length > 0">
+  <h3 class="section-title">⛽ Gasolineras por km (ruta)</h3>
 
-    <div class="ruta-table-wrap">
-      <table class="ruta-table">
-        <thead>
-          <tr>
-            <th class="col-empresa">EMPRESA</th>
-            <th class="col-dir">DIRECCIÓN</th>
-            <th class="col-precio">PRECIO</th>
-            <th class="col-km">DESVÍO KM</th>
-            <th class="col-eur">DESVÍO €</th>
-            <th class="col-horario">HORARIO</th>
-            <th class="col-maps">MAPS</th>
+  <!-- =========================
+       DESKTOP/TABLET: TABLA
+  ========================== -->
+  <div class="ruta-table-wrap ruta-only-desktop">
+    <table class="ruta-table">
+      <thead>
+        <tr>
+          <th class="col-empresa">EMPRESA</th>
+          <th class="col-dir">DIRECCIÓN</th>
+          <th class="col-precio">PRECIO</th>
+          <th class="col-km">DESVÍO KM</th>
+          <th class="col-eur">DESVÍO €</th>
+          <th class="col-horario">HORARIO</th>
+          <th class="col-maps">MAPS</th>
+        </tr>
+      </thead>
+
+      <tbody>
+        <ng-container *ngFor="let b of rutasPorCubo; let bucketIndex = index">
+
+          <tr class="bucket-separator" *ngIf="bucketIndex > 0">
+            <td colspan="7"></td>
           </tr>
-        </thead>
 
-        <tbody>
-          <ng-container *ngFor="let b of rutasPorCubo; let bucketIndex = index">
+          <tr class="bucket-title">
+            <td colspan="7">
+              <div class="bucket-title-content">
+                <span class="bucket-km">Km {{ b.fromKm }}–{{ b.toKm }}</span>
+              </div>
+            </td>
+          </tr>
 
-            <tr class="bucket-separator" *ngIf="bucketIndex > 0">
-              <td colspan="7"></td>
-            </tr>
+          <tr *ngFor="let r of b.items; let last = last"
+              [class.last-in-bucket]="last">
 
-            <tr class="bucket-title">
-              <td colspan="7">
-                <div class="bucket-title-content">
-                  <span class="bucket-km">Km {{ b.fromKm }}–{{ b.toKm }}</span>
-                </div>
-              </td>
-            </tr>
+            <td class="col-empresa">
+              <strong>{{ cleanCompanyName(r.station.rotulo) }}</strong>
+            </td>
 
-            <tr *ngFor="let r of b.items; let last = last"
-                [class.last-in-bucket]="last">
+            <td class="col-dir">{{ getDireccionCompleta(r.station) }}</td>
+            <td class="col-precio">{{ formatPrice(r.precio) }}/L</td>
+            <td class="col-km">{{ formatKm1(r.desvioKm) }}</td>
+            <td class="col-eur">{{ formatEur2(r.desvioEur) }}</td>
 
-              <td class="col-empresa">
-                <strong>{{ cleanCompanyName(r.station.rotulo) }}</strong>
-              </td>
+            <td class="col-horario">
+              <span class="horario-chip">█ {{ formatearHorario(r.horario) }}</span>
+            </td>
 
-              <td class="col-dir">{{ getDireccionCompleta(r.station) }}</td>
-              <td class="col-precio">{{ formatPrice(r.precio) }}/L</td>
-              <td class="col-km">{{ formatKm1(r.desvioKm) }}</td>
-              <td class="col-eur">{{ formatEur2(r.desvioEur) }}</td>
+            <td class="col-maps">
+              <button
+                type="button"
+                class="btn-open-maps small"
+                (click)="openInGoogleMaps(r.station)">
+                <span class="maps-ico">📍</span>
+                <span class="maps-text">Ir a maps</span>
+              </button>
+            </td>
 
-              <td class="col-horario">
-                <span class="horario-chip">█ {{ formatearHorario(r.horario) }}</span>
-              </td>
-
-              <!-- ✅ Botón Ir a Maps (RUTA) -->
-              <td class="col-maps">
-                <button
-                  type="button"
-                  class="btn-open-maps small"
-                  (click)="openInGoogleMaps(r.station)">
-                  <span class="maps-ico">📍</span>
-                  <span class="maps-text">Ir a maps</span>
-                </button>
-              </td>
-
-            </tr>
-          </ng-container>
-        </tbody>
-      </table>
-    </div>
-
-    <div class="results-info">
-      <p>{{ stations.length }} gasolineras encontradas</p>
-    </div>
+          </tr>
+        </ng-container>
+      </tbody>
+    </table>
   </div>
+
+  <!-- =========================
+       MÓVIL: TARJETAS (SIN SCROLL HORIZONTAL)
+  ========================== -->
+  <div class="ruta-cards-wrap ruta-only-mobile">
+    <ng-container *ngFor="let b of rutasPorCubo; let bucketIndex = index">
+
+      <div class="ruta-bucket-card" *ngIf="b.items?.length">
+        <div class="ruta-bucket-header">
+          <span class="bucket-km">Km {{ b.fromKm }}–{{ b.toKm }}</span>
+          <span class="bucket-count">{{ b.items.length }}</span>
+        </div>
+
+        <div class="ruta-cards">
+          <div class="ruta-card" *ngFor="let r of b.items">
+            <div class="ruta-card-top">
+              <div class="ruta-card-empresa">
+                {{ cleanCompanyName(r.station.rotulo) }}
+              </div>
+
+              <div class="ruta-card-precio">
+                {{ formatPrice(r.precio) }}/L
+              </div>
+            </div>
+
+            <div class="ruta-card-dir">
+              {{ getDireccionCompleta(r.station) }}
+            </div>
+
+            <div class="ruta-card-meta">
+              <div class="meta-item">
+                <span class="meta-label">Desvío</span>
+                <span class="meta-value">{{ formatKm1(r.desvioKm) }} km</span>
+              </div>
+
+              <div class="meta-item">
+                <span class="meta-label">Coste</span>
+                <span class="meta-value">{{ formatEur2(r.desvioEur) }}</span>
+              </div>
+            </div>
+
+            <div class="ruta-card-bottom">
+              <span class="horario-chip mobile">█ {{ formatearHorario(r.horario) }}</span>
+
+              <button
+                type="button"
+                class="btn-open-maps"
+                (click)="openInGoogleMaps(r.station)">
+                <span class="maps-ico">📍</span>
+                <span class="maps-text">Ir a maps</span>
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+    </ng-container>
+  </div>
+
+  <div class="results-info">
+    <p>{{ stations.length }} gasolineras encontradas</p>
+  </div>
+</div>
+
 
   <!-- Mensaje cuando no hay filtros -->
   <div class="summary-section" *ngIf="!filters">
