@@ -125,11 +125,11 @@
     gap: 0.5rem;
     font-weight: 600;
 
-    &:hover {
-      background: #2980b9;
-      transform: scale(1.05);
-      box-shadow: 0 4px 8px rgba(52, 152, 219, 0.3);
-    }
+    &:hover:not(:disabled) {
+    transform: translateY(-4px) scale(1.03);
+    box-shadow: 0 12px 35px rgba(255, 148, 77, 0.4);
+    background: linear-gradient(135deg, var(--accent-orange-dark), #d35400);
+  }
 
     &:active {
       transform: scale(0.98);

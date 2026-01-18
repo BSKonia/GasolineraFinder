@@ -29,8 +29,7 @@ export class FiltersComponent implements OnInit {
   
   distanciaDisplay: string = '50 km';
   precioDisplay: string = 'Sin límite';
-  
-  // Solo las 10 empresas principales
+
   empresasPrincipales: string[] = [
     'REPSOL',
     'CEPSA', 

@@ -106,31 +106,33 @@
   }
 
   .btn-submit {
-    flex: 1;
-  padding: 12px 20px;
-  background: var(--bg-secondary);
-  border: 1px solid var(--border-color);
-  color: var(--text-secondary);
-  border-radius: var(--radius-md);
-  font-size: 14px;
-  font-weight: 600;
+  margin: 1rem auto 0;            /* Ocupa todo el ancho */
+  margin-top: 1rem;      /* Espacio arriba */
+  padding: 16px 32px;    /* Padding como home */
+  background: linear-gradient(135deg, var(--accent-orange), var(--accent-orange-dark));  /* Naranja home */
+  color: white !important;
+  border: none;
+  border-radius: var(--radius-lg);
+  font-size: 16px;
+  font-weight: 700;
   cursor: pointer;
-  transition: all 0.25s ease;
-  text-align: center;
+  display: flex;
+  align-items: center;
+  justify-content: center;  /* CENTRA horizontal */
+  box-shadow: 0 8px 25px rgba(255, 148, 77, 0.25);
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
 
-   &:hover {
-    background: rgba(199, 137, 96, 0.1);
-    border-color: rgba(255, 148, 77, 0.3);
-    color: var(--text-primary);
-  }
-  
-  &.active {
-    background: linear-gradient(135deg, var(--accent-orange), var(--accent-orange-dark));
-    border-color: var(--accent-orange);
-    color: white;
-    box-shadow: 0 4px 12px rgba(255, 148, 77, 0.2);
-  }
-  }
+.btn-submit:hover {
+  transform: translateY(-4px) scale(1.03);
+  box-shadow: 0 12px 35px rgba(255, 148, 77, 0.4);
+  background: linear-gradient(135deg, var(--accent-orange-dark), #d35400);
+}
+
+.btn-submit:active {
+  transform: translateY(0);
+}
+
 }
 
 .contact-info-card {
@@ -160,7 +162,6 @@
 
   .contact-icon {
     font-size: 1.5rem;
-    background: #f8f9fa;
     padding: 0.8rem;
     border-radius: 10px;
     min-width: 60px;
@@ -245,9 +246,9 @@
     font-weight: 600;
 
     &:hover {
-      background: #2980b9;
-      transform: scale(1.05);
-      box-shadow: 0 4px 8px rgba(52, 152, 219, 0.3);
+      transform: translateY(-4px) scale(1.03);
+  box-shadow: 0 12px 35px rgba(255, 148, 77, 0.4);
+  background: linear-gradient(135deg, var(--accent-orange-dark), #d35400);
     }
 
     &:active {

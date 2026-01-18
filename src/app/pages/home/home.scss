@@ -493,6 +493,9 @@
     background: var(--bg-secondary);
     color: var(--text-primary);
     transition: var(--transition);
+    appearance: none;
+    background-clip: padding-box;
+    background: var(--bg-secondary) !important;
 
     &:focus {
       border-color: var(--accent-orange);
@@ -518,41 +521,36 @@
 }
 
 .btn-ubicacion-elegante {
-  display: inline-flex;
-  align-items: center;
-  gap: 12px;
+ background: linear-gradient(135deg, var(--accent-orange), var(--accent-orange-dark));
+  color: white;
+  border: none;
   padding: 14px 28px;
-  background: linear-gradient(135deg, rgba(255, 148, 77, 0.12), rgba(255, 148, 77, 0.06));
-  border: 1px solid rgba(255, 148, 77, 0.35);
   border-radius: var(--radius-lg);
-  color: var(--accent-orange);
   font-size: 16px;
   font-weight: 700;
   cursor: pointer;
   transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-  white-space: nowrap;
-  position: relative;
-  overflow: hidden;
-  box-shadow: 0 6px 20px rgba(255, 148, 77, 0.15);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  box-shadow: 0 8px 25px rgba(255, 148, 77, 0.25);
 
-  &:hover {
-    background: linear-gradient(135deg, rgba(255, 148, 77, 0.2), rgba(255, 148, 77, 0.12));
-    border-color: var(--accent-orange);
-    transform: translateY(-3px) scale(1.03);
-    box-shadow: 0 10px 30px rgba(255, 148, 77, 0.25);
-
-    .btn-ubicacion-icono {
-      transform: scale(1.2) rotate(15deg);
-    }
+  &:hover:not(:disabled) {
+    transform: translateY(-4px) scale(1.03);
+    box-shadow: 0 12px 35px rgba(255, 148, 77, 0.4);
+    background: linear-gradient(135deg, var(--accent-orange-dark), #d35400);
   }
 
-  &:active {
+  &:active:not(:disabled) {
     transform: translateY(-1px) scale(1.01);
   }
 
-  &:focus {
-    outline: none;
-    box-shadow: 0 0 0 4px rgba(255, 148, 77, 0.25);
+  &:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+    transform: none;
+    box-shadow: none;
   }
 }
 

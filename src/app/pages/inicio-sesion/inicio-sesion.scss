@@ -1,0 +1,129 @@
+.inicio-container {
+  max-width: 500px;
+  margin: 0 auto;
+  margin-top: 5rem;
+  padding: 2rem;
+  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+  color: white; /* Cambiar el texto a blanco */
+}
+
+.inicio-form-card,
+
+.inicio-form-card {
+  h2 {
+    font-size: 1.5rem;
+    color: var(--accent-orange);
+    margin-bottom: 1.5rem;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    justify-content: center;  /* ¡CENTRA horizontal! */
+    text-align: center;       /* Doble seguro para texto */
+  }
+}
+
+.inicio-form {
+  .form-group {
+    margin-bottom: 1.5rem;
+
+    label {
+      display: block;
+      margin-bottom: 0.5rem;
+      font-weight: 600;
+      color: #ffffff; /* Blanco para las etiquetas */
+      
+      &::after {
+        content: " *";
+        color: #e74c3c;
+        opacity: 0.8;
+      }
+
+      &:not(:has(+ *[required]))::after {
+        content: "";
+      }
+    }
+
+    input,
+    select,
+    textarea {
+      width: 100%;
+      padding: 0.8rem;
+      border: 2px solid #ddd;
+      border-radius: 8px;
+      font-size: 1rem;
+      transition: border-color 0.3s ease;
+      font-family: inherit;
+
+      &:focus {
+        outline: none;
+        border-color: #3498db;
+        box-shadow: 0 0 0 3px rgba(52, 152, 219, 0.2);
+      }
+
+      &:hover {
+        border-color: #bbb;
+      }
+    }
+
+    textarea {
+      resize: vertical;
+    }
+
+    .password-container {
+  position: relative;
+}
+
+.toggle-password {
+  position: absolute;
+  right: 12px;
+  top: 50%;
+  transform: translateY(-50%);
+  background: none;
+  border: none;
+  cursor: pointer;
+  font-size: 18px;
+  color: var(--text-secondary);
+}
+
+  }
+
+  .btn-submit {
+  margin: 1rem auto 0;   /* Ocupa todo el ancho */
+  margin-top: 1rem;      /* Espacio arriba */
+  padding: 16px 32px;    /* Padding como home */
+  background: linear-gradient(135deg, var(--accent-orange), var(--accent-orange-dark));  /* Naranja home */
+  color: white !important;
+  border: none;
+  border-radius: var(--radius-lg);
+  font-size: 16px;
+  font-weight: 700;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;  /* CENTRA horizontal */
+  box-shadow: 0 8px 25px rgba(255, 148, 77, 0.25);
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.btn-submit:hover {
+  transform: translateY(-4px) scale(1.03);
+  box-shadow: 0 12px 35px rgba(255, 148, 77, 0.4);
+  background: linear-gradient(135deg, var(--accent-orange-dark), #d35400);
+}
+
+.btn-submit:active {
+  transform: translateY(0);
+}
+
+}
+
+.inicio-info-card {
+  h2 {
+    font-size: 1.5rem;
+    color: var(--accent-orange); /* Naranja para los títulos de las tarjetas */
+    margin-bottom: 1.5rem;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+  }
+}
