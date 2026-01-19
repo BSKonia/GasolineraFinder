@@ -1,0 +1,44 @@
+/* Estilos para los iconos SVG */
+.icono-svg {
+  display: inline-block;
+  width: 24px;  /* Ajusta el tamaño del SVG */
+  height: 24px; /* Ajusta el tamaño del SVG */
+  fill: #d35400;  /* Cambia el color de los SVG a naranja */
+  transition: fill 0.3s ease;  /* Transición suave para el cambio de color */
+}
+
+.nav-button:hover .icono-svg {
+  fill: #d35400;  /* Cambia el color del icono a naranja en hover */
+}
+
+/* Estilos para el menú */
+.main-nav {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 20px; /* Espacio entre los iconos */
+}
+
+.nav-button {
+  display: inline-block;
+  font-size: 24px; /* Tamaño del icono */
+  padding: 10px;
+  color: var(--text-secondary);
+  transition: color 0.3s ease, transform 0.3s ease;
+}
+
+.nav-button:hover {
+  color: #d35400; /* Color cuando el usuario pasa el mouse */
+  transform: scale(1.1); /* Aumenta ligeramente el tamaño del icono */
+}
+
+.nav-button i {
+  display: inline-block;
+  margin-right: 8px; /* Espacio entre el icono y el texto (si decides agregar texto) */
+}
+
+@media (max-width: 768px) {
+  .main-nav {
+    gap: 15px; /* Menor espacio entre los iconos en pantallas más pequeñas */
+  }
+}

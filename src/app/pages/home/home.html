@@ -37,7 +37,7 @@
 
 <!-- Video coche -->
 <div class="gif-coche">
-  <video id="video-coche" autoplay muted playsinline preload="auto">
+  <video id="video-coche" autoplay muted playsinline preload="auto" (canplay)="onVideoCanPlay()">
     <source src="assets/2016_bmw_m4_gts.mp4" type="video/mp4" />
   </video>
 </div>

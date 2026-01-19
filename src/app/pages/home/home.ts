@@ -12,6 +12,7 @@ import { FormsModule } from '@angular/forms';
 import { HttpClient } from '@angular/common/http';
 import { firstValueFrom } from 'rxjs';
 
+
 import { GasolineraService } from '../../services/api/gasolinera';
 import { GeolocationService } from '../../services/geolocation';
 import { StorageService } from '../../services/storage';
@@ -36,6 +37,8 @@ import {
   MapPolyline,
   MapInfoWindow
 } from '@angular/google-maps';
+
+
 
 // ===========================
 // 🧪 DEBUG INTERFACES
@@ -593,7 +596,6 @@ stationMarkers: Array<{
 }> = [];
 
 private starIcon(): google.maps.Icon {
-  // SVG inline (estrella). Así no dependes de URLs externas.
   const svg = encodeURIComponent(`
     <svg xmlns="http://www.w3.org/2000/svg" width="64" height="64" viewBox="0 0 24 24">
       <path fill="#FFD54A" stroke="#111" stroke-width="1"
@@ -603,10 +605,11 @@ private starIcon(): google.maps.Icon {
 
   return {
     url: `data:image/svg+xml;charset=UTF-8,${svg}`,
-    scaledSize: new google.maps.Size(28, 28),
+    scaledSize: new google.maps.Size(28, 28),  // Asegúrate de usar 'new' aquí
     anchor: new google.maps.Point(14, 14),
   };
 }
+
 
 stationMarkerOptions: google.maps.MarkerOptions = {
   clickable: true,
@@ -722,6 +725,7 @@ private setSelectedMarkerFromStation(g: Gasolinera | null, ajustarMapa: boolean 
   // ---------------------------
   // LIFECYCLE
   // ---------------------------
+  
   ngOnInit(): void {
     const savedLocation = this.storageService.obtenerUbicacion();
     if (savedLocation) this.ubicacionUsuario = savedLocation;
