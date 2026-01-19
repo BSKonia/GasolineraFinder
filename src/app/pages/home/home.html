@@ -23,29 +23,27 @@
     </button>
   </div>
 
-  <!-- CARD PERFIL -->
-  <section class="perfil-card">
-    <div class="perfil-container">
-      <!-- Datos del perfil -->
-      <div class="datos-perfil">
-        <h2>Perfil de Usuario</h2>
-        <p><strong>Nombre:</strong> <span> Mario</span></p>
-        <p><strong>Marca del coche:</strong> <span> BMW</span></p>
-        <p><strong>Modelo:</strong> <span> M4 GTS 2016</span></p>
-        <p><strong>Consumo:</strong> <span> 6.5 L/100km</span></p>
-      </div>
-
-      <!-- Video coche -->
-      <div class="gif-coche">
-        <video
-          src="assets/2016_bmw_m4_gts.webm"
-          autoplay
-          muted
-          playsinline
-        ></video>
-      </div>
+<!-- CARD PERFIL -->
+<section class="perfil-card">
+  <div class="perfil-container">
+    <!-- Datos del perfil -->
+    <div class="datos-perfil">
+      <h2>Perfil de Usuario</h2>
+      <p><strong>Nombre:</strong> <span> Mario</span></p>
+      <p><strong>Marca del coche:</strong> <span> BMW</span></p>
+      <p><strong>Modelo:</strong> <span> M4 GTS 2016</span></p>
+      <p><strong>Consumo:</strong> <span> 6.5 L/100km</span></p>
     </div>
-  </section>
+
+<!-- Video coche -->
+<div class="gif-coche">
+  <video id="video-coche" autoplay muted playsinline preload="auto">
+    <source src="assets/2016_bmw_m4_gts.mp4" type="video/mp4" />
+  </video>
+</div>
+  </div>
+</section>
+
 
   <!-- ACORDEÓN: Ubicación de Inicio -->
   <div class="acordeon-mejorado" [class.cerrado]="!acordeonAbierto.inicio">

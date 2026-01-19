@@ -74,6 +74,9 @@
   display: flex;
   justify-content: flex-end;
   align-items: center;
+
+  /* 👇 evita blancos “por defecto” */
+  background: transparent;
 }
 
 .gif-coche video {

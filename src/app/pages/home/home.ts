@@ -26,6 +26,7 @@ import { environment } from '../../../environments/environment';
 
 import { haversineKm } from '../../utils/haversine';
 import { GoogleRoutesService } from '../../services/google/google-routes.service';
+import { AfterViewInit } from '@angular/core';
 
 // ✅ Google Maps (Angular wrapper)
 import {
@@ -136,6 +137,23 @@ type RouteBaseInfo = {
 })
 
 export class Home implements OnInit, OnDestroy, AfterViewChecked {
+
+
+  ngAfterViewInit(): void {
+    // Obtén el elemento del video
+    const videoElement = document.getElementById('video-coche') as HTMLVideoElement;
+
+    // Verifica que el video existe
+    if (videoElement) {
+      // Reproduce el video
+      videoElement.play();
+
+      // Detén el video cuando termine de reproducirse
+      videoElement.onended = () => {
+        videoElement.pause();
+      };
+    }
+  }
   // ---------------------------
   // DATA
   // ---------------------------
