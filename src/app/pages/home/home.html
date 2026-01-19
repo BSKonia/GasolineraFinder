@@ -423,6 +423,9 @@
   <!-- ===========================
      🧪 DEPURACIÓN (MODO RUTA) - MEJORADO
   =========================== -->
+<!--
+  
+
   <section class="debug-panel" *ngIf="DEBUG_UI">
     <h3>🧪 Depuración (Modo Ruta)</h3>
 
@@ -437,8 +440,8 @@
         <strong>Tiempo:</strong> {{ debugRuta.elapsedMs }} ms
       </div>
     </div>
-
-    <!-- Mostrar información clave de inmediato -->
+  
+    Mostrar información clave de inmediato 
     <div class="debug-summary" *ngIf="debugRuta.dataset.totalStations > 0">
       <h4>📊 Resumen</h4>
       <div class="summary-grid">
@@ -461,7 +464,7 @@
       </div>
     </div>
 
-    <!-- Botones para expandir/colapsar secciones -->
+     Botones para expandir/colapsar secciones 
     <div class="debug-controls">
       <button type="button" (click)="toggleDebugSection('inputs')">
         {{ debugSections.inputs ? '▼' : '▶' }} 1) Entradas
@@ -486,7 +489,7 @@
       </button>
     </div>
 
-    <!-- Secciones colapsables -->
+     Secciones colapsables 
     <div *ngIf="debugSections.inputs" class="debug-section">
       <h4>1) Entradas</h4>
       <pre>{{ debugRuta.input | json }}</pre>
@@ -574,5 +577,9 @@
       <pre>{{ debugRuta.ui | json }}</pre>
     </div>
   </section>
+
+    -->
+
+  
 
 </div>
