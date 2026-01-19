@@ -74,6 +74,9 @@
   display: flex;
   justify-content: flex-end;
   align-items: center;
+
+  /* 👇 evita blancos “por defecto” */
+  background: transparent;
 }
 
 .gif-coche video {
@@ -469,7 +472,7 @@
 }
 
 .acordeon-mejorado:not(.cerrado) .acordeon-contenido {
-  max-height: 2000px;
+  max-height: 50000px;
 }
 
 /* =========================================================
