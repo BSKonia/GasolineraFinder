@@ -127,3 +127,11 @@
     gap: 0.5rem;
   }
 }
+
+  h1 {
+    font-size: 2.8rem;
+    color: var(--accent-orange);  /* Naranja, el color que ya estás usando */
+    margin-bottom: 0.5rem;
+    font-weight: 700;
+    text-align: center;
+  }
