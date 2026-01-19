@@ -37,8 +37,15 @@
 
 <!-- Video coche -->
 <div class="gif-coche">
-  <video id="video-coche" autoplay muted playsinline preload="auto" (canplay)="onVideoCanPlay()">
+  <video 
+    id="video-coche" 
+    muted 
+    playsinline 
+    preload="auto"
+    (canplay)="onVideoCanPlay()"
+    poster="assets/video-poster.jpg">
     <source src="assets/2016_bmw_m4_gts.mp4" type="video/mp4" />
+    Tu navegador no soporta videos HTML5.
   </video>
 </div>
   </div>

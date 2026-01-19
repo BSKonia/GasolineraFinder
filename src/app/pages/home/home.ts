@@ -6,12 +6,13 @@ import {
   AfterViewChecked,
   ChangeDetectorRef,
   ViewChild,
+  AfterViewInit,
 } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { HttpClient } from '@angular/common/http';
 import { firstValueFrom } from 'rxjs';
-
+import { Router, NavigationEnd } from '@angular/router';
 
 import { GasolineraService } from '../../services/api/gasolinera';
 import { GeolocationService } from '../../services/geolocation';
@@ -27,7 +28,6 @@ import { environment } from '../../../environments/environment';
 
 import { haversineKm } from '../../utils/haversine';
 import { GoogleRoutesService } from '../../services/google/google-routes.service';
-import { AfterViewInit } from '@angular/core';
 
 // ✅ Google Maps (Angular wrapper)
 import {
@@ -37,8 +37,6 @@ import {
   MapPolyline,
   MapInfoWindow
 } from '@angular/google-maps';
-
-
 
 // ===========================
 // 🧪 DEBUG INTERFACES
@@ -138,25 +136,86 @@ type RouteBaseInfo = {
   templateUrl: './home.html',
   styleUrls: ['./home.scss'],
 })
-
-export class Home implements OnInit, OnDestroy, AfterViewChecked {
-
+export class Home implements OnInit, OnDestroy, AfterViewChecked, AfterViewInit {
+  // ---------------------------
+  // VIDEO CONTROL
+  // ---------------------------
+  private videoReproducido = false;
+  private videoElement: HTMLVideoElement | null = null;
 
   ngAfterViewInit(): void {
-    // Obtén el elemento del video
-    const videoElement = document.getElementById('video-coche') as HTMLVideoElement;
+    this.initializeVideo();
+    this.playVideoOnce();
+    
+    // Escuchar cambios de ruta para detectar cuando volvemos a home
+    this.router.events.subscribe(event => {
+      if (event instanceof NavigationEnd) {
+        const currentUrl = event.urlAfterRedirects;
+        // Si estamos en la home ('/' o '/home')
+        if (currentUrl === '/' || currentUrl === '/home' || currentUrl.includes('home')) {
+          this.playVideoOnce();
+        }
+      }
+    });
+  }
 
-    // Verifica que el video existe
-    if (videoElement) {
-      // Reproduce el video
-      videoElement.play();
-
-      // Detén el video cuando termine de reproducirse
-      videoElement.onended = () => {
-        videoElement.pause();
-      };
+  private initializeVideo(): void {
+    this.videoElement = document.getElementById('video-coche') as HTMLVideoElement;
+    
+    if (this.videoElement) {
+      // Configurar el video para que solo se reproduzca una vez
+      this.videoElement.loop = false;
+      this.videoElement.muted = true;
+      this.videoElement.playsInline = true;
+      this.videoElement.preload = 'auto';
+      
+      // Cuando termina el video, lo pausamos
+      this.videoElement.addEventListener('ended', () => {
+        this.videoElement?.pause();
+        this.videoReproducido = true;
+      });
+      
+      // Cuando hay un error, lo manejamos
+      this.videoElement.addEventListener('error', () => {
+        console.warn('Error al cargar/reproducir el video');
+      });
     }
   }
+
+  private playVideoOnce(): void {
+    // Solo reproducir si el video no se ha reproducido ya en esta sesión
+    if (this.videoElement && !this.videoReproducido) {
+      // Reseteamos el video al principio
+      this.videoElement.currentTime = 0;
+      
+      // Intentar reproducir
+      const playPromise = this.videoElement.play();
+      
+     if (playPromise !== undefined) {
+  playPromise.catch(error => {
+    console.warn('Auto-play falló:', error);
+    // Usar ! para indicar que sabes que no es null
+    this.videoElement!.pause();
+    this.videoElement!.currentTime = 0;
+  });
+}
+      
+      this.videoReproducido = true;
+    } else if (this.videoElement && this.videoReproducido) {
+      // Si ya se reprodujo, solo mostramos el primer frame
+      this.videoElement.currentTime = 0;
+      this.videoElement.pause();
+    }
+  }
+
+  // Método para reiniciar el video cuando cambias de sección y vuelves
+  resetVideoPlayback(): void {
+    this.videoReproducido = false;
+    setTimeout(() => {
+      this.playVideoOnce();
+    }, 100);
+  }
+
   // ---------------------------
   // DATA
   // ---------------------------
@@ -191,7 +250,7 @@ export class Home implements OnInit, OnDestroy, AfterViewChecked {
   readonly reservaMinKm = 15;
   readonly consumoFijoL100 = 6.0;
 
-  // ✅ Ya NO usamos “googleApiKey” para llamar a Google “a mano”.
+  // ✅ Ya NO usamos "googleApiKey" para llamar a Google "a mano".
   // El service usa environment.googleMapsApiKey.
   private get hasGoogleKey(): boolean {
     return !!(environment.googleMapsApiKey && environment.googleMapsApiKey.trim().length > 0);
@@ -233,55 +292,58 @@ export class Home implements OnInit, OnDestroy, AfterViewChecked {
   private onWinResize = () => this.checkScrollNeeded();
   private onWinScroll = () => this.checkScrollNeeded();
 
-  // ✅ NUEVO: radio fijo del “corredor” (distancia lateral a la ruta)
-  // El slider maxDistance lo usamos SOLO como “desvío máximo real”.
+  // ✅ NUEVO: radio fijo del "corredor" (distancia lateral a la ruta)
+  // El slider maxDistance lo usamos SOLO como "desvío máximo real".
   private readonly corridorRadiusKm = 20;
 
-
-private getPrecioParaInfoWindow(station: Gasolinera): number {
-  const p: any = (station as any).precios;
-
-  // Caso 1: ya es un número
-  if (typeof p === 'number') return p;
-
-  // Caso 2: string "1.509" o "1,509"
-  if (typeof p === 'string') {
-    const n = parseFloat(p.replace(',', '.'));
-    return Number.isFinite(n) ? n : 0;
+  // Método para el evento canplay del video
+  onVideoCanPlay(): void {
+    // Solo reproducir automáticamente si no se ha reproducido aún
+    if (!this.videoReproducido) {
+      this.playVideoOnce();
+    }
   }
 
-  // Caso 3: objeto por tipo de combustible (muy típico)
-  // Ej: precios = { "Gasolina 95 E5": 1.509, "Gasóleo A": 1.459 }
-  if (p && typeof p === 'object' && !Array.isArray(p)) {
-    const key = this.filters?.fuelType; // combustible seleccionado en filtros
-    const val = key ? p[key] : undefined;
+  private getPrecioParaInfoWindow(station: Gasolinera): number {
+    const p: any = (station as any).precios;
 
-    if (val != null) {
-      const n = typeof val === 'string' ? parseFloat(val.replace(',', '.')) : Number(val);
+    // Caso 1: ya es un número
+    if (typeof p === 'number') return p;
+
+    // Caso 2: string "1.509" o "1,509"
+    if (typeof p === 'string') {
+      const n = parseFloat(p.replace(',', '.'));
       return Number.isFinite(n) ? n : 0;
     }
 
-    // fallback: primer valor numérico que encuentre
-    for (const k of Object.keys(p)) {
-      const v = p[k];
-      const n = typeof v === 'string' ? parseFloat(v.replace(',', '.')) : Number(v);
-      if (Number.isFinite(n)) return n;
+    // Caso 3: objeto por tipo de combustible (muy típico)
+    // Ej: precios = { "Gasolina 95 E5": 1.509, "Gasóleo A": 1.459 }
+    if (p && typeof p === 'object' && !Array.isArray(p)) {
+      const key = this.filters?.fuelType; // combustible seleccionado en filtros
+      const val = key ? p[key] : undefined;
+
+      if (val != null) {
+        const n = typeof val === 'string' ? parseFloat(val.replace(',', '.')) : Number(val);
+        return Number.isFinite(n) ? n : 0;
+      }
+
+      // fallback: primer valor numérico que encuentre
+      for (const k of Object.keys(p)) {
+        const v = p[k];
+        const n = typeof v === 'string' ? parseFloat(v.replace(',', '.')) : Number(v);
+        if (Number.isFinite(n)) return n;
+      }
     }
+
+    // Caso 4: array (menos probable)
+    if (Array.isArray(p) && p.length > 0) {
+      const v = p[0];
+      const n = typeof v === 'string' ? parseFloat(v.replace(',', '.')) : Number(v);
+      return Number.isFinite(n) ? n : 0;
+    }
+
+    return 0;
   }
-
-  // Caso 4: array (menos probable)
-  if (Array.isArray(p) && p.length > 0) {
-    const v = p[0];
-    const n = typeof v === 'string' ? parseFloat(v.replace(',', '.')) : Number(v);
-    return Number.isFinite(n) ? n : 0;
-  }
-
-  return 0;
-}
-
-
-
-
 
   // =========================================================
   // ✅ MAPA (origen/destino/selección + fit bounds)
@@ -320,31 +382,26 @@ private getPrecioParaInfoWindow(station: Gasolinera): number {
     // Fallback por dirección o rótulo
     const q = encodeURIComponent(info.direccion ?? info.rotulo ?? '');
     return `https://www.google.com/maps/search/?api=1&query=${q}`;
-  } 
+  }
 
+  onStationMarkerClick(marker: MapMarker, station: Gasolinera): void {
+    this.onGasolineraSeleccionada(station, false);
 
-onStationMarkerClick(marker: MapMarker, station: Gasolinera): void {
-  this.onGasolineraSeleccionada(station, false);
+    const precioElegido = this.getPrecioParaInfoWindow(station);
 
-  const precioElegido = this.getPrecioParaInfoWindow(station);
+    this.selectedInfoForMap = {
+      rotulo: station.rotulo,
+      direccion: station.direccion,
+      precio: precioElegido,
+      horario: station.horario,
+      latitud: station.latitud,
+      longitud: station.longitud
+    };
 
-  this.selectedInfoForMap = {
-    rotulo: station.rotulo,
-    direccion: station.direccion,
-    precio: precioElegido,
-    horario: station.horario,
-    latitud: station.latitud,
-    longitud: station.longitud
-  };
+    this.cd.detectChanges();
+    setTimeout(() => this.infoWindow?.open(marker), 0);
+  }
 
-  this.cd.detectChanges();
-  setTimeout(() => this.infoWindow?.open(marker), 0);
-}
-
-
-
-
-  
   // =========================================================
   // ✅ MAPA (origen/destino/selección + fit bounds)
   // =========================================================
@@ -373,7 +430,8 @@ onStationMarkerClick(marker: MapMarker, station: Gasolinera): void {
     private storageService: StorageService,
     private companyNormalizer: CompanyNormalizerService,
     private http: HttpClient,
-    private googleRoutes: GoogleRoutesService
+    private googleRoutes: GoogleRoutesService,
+    private router: Router // ← Añadido para control de rutas
   ) {}
 
   // ===========================
@@ -577,66 +635,62 @@ onStationMarkerClick(marker: MapMarker, station: Gasolinera): void {
     });
   }
 
-// =========================================================
-// ✅ POLILÍNEA RUTA + MARKERS GASOLINERAS
-// =========================================================
-routePath: google.maps.LatLngLiteral[] = [];
-routePolylineOptions: google.maps.PolylineOptions = {
-  strokeOpacity: 0.9,
-  strokeWeight: 5,
-  clickable: false,
-  geodesic: true
-};
-
-// Markers para gasolineras resultado
-stationMarkers: Array<{
-  position: google.maps.LatLngLiteral;
-  title: string;
-  station: Gasolinera;
-}> = [];
-
-private starIcon(): google.maps.Icon {
-  const svg = encodeURIComponent(`
-    <svg xmlns="http://www.w3.org/2000/svg" width="64" height="64" viewBox="0 0 24 24">
-      <path fill="#FFD54A" stroke="#111" stroke-width="1"
-        d="M12 2.5l2.9 6.2 6.8.6-5.2 4.5 1.6 6.7L12 17.9 5.9 20.5l1.6-6.7-5.2-4.5 6.8-.6L12 2.5z"/>
-    </svg>
-  `);
-
-  return {
-    url: `data:image/svg+xml;charset=UTF-8,${svg}`,
-    scaledSize: new google.maps.Size(28, 28),  // Asegúrate de usar 'new' aquí
-    anchor: new google.maps.Point(14, 14),
+  // =========================================================
+  // ✅ POLILÍNEA RUTA + MARKERS GASOLINERAS
+  // =========================================================
+  routePath: google.maps.LatLngLiteral[] = [];
+  routePolylineOptions: google.maps.PolylineOptions = {
+    strokeOpacity: 0.9,
+    strokeWeight: 5,
+    clickable: false,
+    geodesic: true
   };
-}
 
+  // Markers para gasolineras resultado
+  stationMarkers: Array<{
+    position: google.maps.LatLngLiteral;
+    title: string;
+    station: Gasolinera;
+  }> = [];
 
-stationMarkerOptions: google.maps.MarkerOptions = {
-  clickable: true,
-};
+  private starIcon(): google.maps.Icon {
+    const svg = encodeURIComponent(`
+      <svg xmlns="http://www.w3.org/2000/svg" width="64" height="64" viewBox="0 0 24 24">
+        <path fill="#FFD54A" stroke="#111" stroke-width="1"
+          d="M12 2.5l2.9 6.2 6.8.6-5.2 4.5 1.6 6.7L12 17.9 5.9 20.5l1.6-6.7-5.2-4.5 6.8-.6L12 2.5z"/>
+      </svg>
+    `);
 
-private buildStationMarkersFromResults(): void {
-  const list = (this.gasolinerasFiltradas ?? [])
-    .filter(g => Number.isFinite(g.latitud) && Number.isFinite(g.longitud) && g.latitud !== 0 && g.longitud !== 0)
-    // opcional: limitar para no llenar el mapa (ajusta si quieres)
-    .slice(0, 60);
+    return {
+      url: `data:image/svg+xml;charset=UTF-8,${svg}`,
+      scaledSize: new google.maps.Size(28, 28),
+      anchor: new google.maps.Point(14, 14),
+    };
+  }
 
-  this.stationMarkers = list.map(g => ({
-    position: { lat: g.latitud, lng: g.longitud },
-    title: g.rotulo || 'Gasolinera',
-    station: g
-  }));
+  stationMarkerOptions: google.maps.MarkerOptions = {
+    clickable: true,
+  };
 
-  this.cd.markForCheck();
-}
+  private buildStationMarkersFromResults(): void {
+    const list = (this.gasolinerasFiltradas ?? [])
+      .filter(g => Number.isFinite(g.latitud) && Number.isFinite(g.longitud) && g.latitud !== 0 && g.longitud !== 0)
+      .slice(0, 60);
 
-private clearRouteAndStationsOnMap(): void {
-  this.routePath = [];
-  this.stationMarkers = [];
-  this.cd.markForCheck();
-}
+    this.stationMarkers = list.map(g => ({
+      position: { lat: g.latitud, lng: g.longitud },
+      title: g.rotulo || 'Gasolinera',
+      station: g
+    }));
 
+    this.cd.markForCheck();
+  }
 
+  private clearRouteAndStationsOnMap(): void {
+    this.routePath = [];
+    this.stationMarkers = [];
+    this.cd.markForCheck();
+  }
 
   // =========================================================
   // ✅ Actualizar mapa: origen/destino/selección + fitBounds
@@ -657,70 +711,66 @@ private clearRouteAndStationsOnMap(): void {
     setTimeout(() => this.fitMapToMarkers(), 80);
   }
 
-private fitMapToMarkers(): void {
-  if (!this.googleMap?.googleMap) return;
+  private fitMapToMarkers(): void {
+    if (!this.googleMap?.googleMap) return;
 
-  const bounds = new google.maps.LatLngBounds();
-  let count = 0;
+    const bounds = new google.maps.LatLngBounds();
+    let count = 0;
 
-  const add = (p?: google.maps.LatLngLiteral) => {
-    if (!p) return;
-    bounds.extend(p);
-    count++;
-  };
+    const add = (p?: google.maps.LatLngLiteral) => {
+      if (!p) return;
+      bounds.extend(p);
+      count++;
+    };
 
-  // Origen / destino / selección
-  add(this.markerOrigen);
-  add(this.markerDestino);
-  add(this.markerSeleccion);
+    // Origen / destino / selección
+    add(this.markerOrigen);
+    add(this.markerDestino);
+    add(this.markerSeleccion);
 
-  // ✅ Ruta (polilínea)
-  if (this.routePath?.length) {
-    // Para no meter 1000 puntos en bounds, muestreamos
-    const step = Math.max(1, Math.floor(this.routePath.length / 60));
-    for (let i = 0; i < this.routePath.length; i += step) {
-      add(this.routePath[i]);
+    // ✅ Ruta (polilínea)
+    if (this.routePath?.length) {
+      const step = Math.max(1, Math.floor(this.routePath.length / 60));
+      for (let i = 0; i < this.routePath.length; i += step) {
+        add(this.routePath[i]);
+      }
+      add(this.routePath[this.routePath.length - 1]);
     }
-    // Asegura último punto
-    add(this.routePath[this.routePath.length - 1]);
-  }
 
-  // ✅ Estrellas (markers de resultados)
-  if (this.stationMarkers?.length) {
-    for (const m of this.stationMarkers.slice(0, 80)) {
-      add(m.position);
+    // ✅ Estrellas (markers de resultados)
+    if (this.stationMarkers?.length) {
+      for (const m of this.stationMarkers.slice(0, 80)) {
+        add(m.position);
+      }
     }
-  }
 
-  if (count === 0) return;
+    if (count === 0) return;
 
-  if (count === 1) {
-    const only = this.markerOrigen || this.markerDestino || this.markerSeleccion || this.routePath?.[0] || this.stationMarkers?.[0]?.position;
-    if (only) {
-      this.googleMap.googleMap.setCenter(only);
-      this.googleMap.googleMap.setZoom(12);
+    if (count === 1) {
+      const only = this.markerOrigen || this.markerDestino || this.markerSeleccion || this.routePath?.[0] || this.stationMarkers?.[0]?.position;
+      if (only) {
+        this.googleMap.googleMap.setCenter(only);
+        this.googleMap.googleMap.setZoom(12);
+      }
+      return;
     }
-    return;
+
+    this.googleMap.googleMap.fitBounds(bounds, 60);
   }
-
-  this.googleMap.googleMap.fitBounds(bounds, 60);
-}
-
 
   // Si eliges una gasolinera, ponemos el marcador y reajustamos el mapa
-private setSelectedMarkerFromStation(g: Gasolinera | null, ajustarMapa: boolean = true): void {
-  if (!g) {
-    this.markerSeleccion = undefined;
-    if (ajustarMapa) setTimeout(() => this.fitMapToMarkers(), 50);
-    return;
-  }
+  private setSelectedMarkerFromStation(g: Gasolinera | null, ajustarMapa: boolean = true): void {
+    if (!g) {
+      this.markerSeleccion = undefined;
+      if (ajustarMapa) setTimeout(() => this.fitMapToMarkers(), 50);
+      return;
+    }
 
-  if (Number.isFinite(g.latitud) && Number.isFinite(g.longitud) && g.latitud !== 0 && g.longitud !== 0) {
-    this.markerSeleccion = { lat: g.latitud, lng: g.longitud };
-    if (ajustarMapa) setTimeout(() => this.fitMapToMarkers(), 50);
+    if (Number.isFinite(g.latitud) && Number.isFinite(g.longitud) && g.latitud !== 0 && g.longitud !== 0) {
+      this.markerSeleccion = { lat: g.latitud, lng: g.longitud };
+      if (ajustarMapa) setTimeout(() => this.fitMapToMarkers(), 50);
+    }
   }
-}
-
 
   // ---------------------------
   // LIFECYCLE
@@ -750,8 +800,8 @@ private setSelectedMarkerFromStation(g: Gasolinera | null, ajustarMapa: boolean 
     this.cargarGasolineras();
 
     this.stationMarkerOptions = {
-    clickable: true,
-    icon: this.starIcon()
+      clickable: true,
+      icon: this.starIcon(),
     };
 
     this.setupObservers();
@@ -783,55 +833,59 @@ private setSelectedMarkerFromStation(g: Gasolinera | null, ajustarMapa: boolean 
 
     window.removeEventListener('resize', this.onWinResize);
     window.removeEventListener('scroll', this.onWinScroll);
+    
+    // Limpiar event listeners del video
+    if (this.videoElement) {
+      this.videoElement.removeEventListener('ended', () => {});
+      this.videoElement.removeEventListener('error', () => {});
+    }
   }
 
   // ---------------------------
   // UI / ACCORDEON
   // ---------------------------
-setModo(modo: 'buscar' | 'ruta'): void {
-  if (this.modoSeleccionado === modo) return;
+  setModo(modo: 'buscar' | 'ruta'): void {
+    if (this.modoSeleccionado === modo) return;
 
-  this.modoSeleccionado = modo;
+    this.modoSeleccionado = modo;
 
-  if (modo === 'ruta') {
-    // Reset destino + marcador destino (pero NO borramos origen)
-    this.destino = {
-      latitud: 0,
-      longitud: 0,
-      calle: '',
-      numero: '',
-      ciudad: '',
-      provincia: '',
-      direccionCompleta: '',
-    };
-    this.markerDestino = undefined;
+    // Resetear el video para que se reproduzca de nuevo
+    this.resetVideoPlayback();
 
-    // ✅ En modo ruta, limpiamos selección previa y marcadores de resultados anteriores
-    this.markerSeleccion = undefined;
-    this.stationMarkers = [];
-    // La ruta se pintará cuando ejecutes búsqueda en ruta (routePath se setea al obtener la ruta base)
-    this.routePath = [];
+    if (modo === 'ruta') {
+      // Reset destino + marcador destino (pero NO borramos origen)
+      this.destino = {
+        latitud: 0,
+        longitud: 0,
+        calle: '',
+        numero: '',
+        ciudad: '',
+        provincia: '',
+        direccionCompleta: '',
+      };
+      this.markerDestino = undefined;
 
-    setTimeout(() => this.fitMapToMarkers(), 80);
-  } else {
-    // Volvemos a modo buscar
-    this.acordeonAbierto.destino = false;
+      // ✅ En modo ruta, limpiamos selección previa y marcadores de resultados anteriores
+      this.markerSeleccion = undefined;
+      this.stationMarkers = [];
+      this.routePath = [];
 
-    // ✅ Quitamos destino, selección y la polilínea de ruta
-    this.markerDestino = undefined;
-    this.markerSeleccion = undefined;
-    this.routePath = [];
+      setTimeout(() => this.fitMapToMarkers(), 80);
+    } else {
+      // Volvemos a modo buscar
+      this.acordeonAbierto.destino = false;
 
-    // ✅ (Opcional pero recomendado) también limpiamos estrellas de resultados anteriores
-    // Si luego haces una búsqueda en modo buscar, se volverán a crear con buildStationMarkersFromResults()
-    this.stationMarkers = [];
+      // ✅ Quitamos destino, selección y la polilínea de ruta
+      this.markerDestino = undefined;
+      this.markerSeleccion = undefined;
+      this.routePath = [];
+      this.stationMarkers = [];
 
-    setTimeout(() => this.fitMapToMarkers(), 80);
+      setTimeout(() => this.fitMapToMarkers(), 80);
+    }
+
+    setTimeout(() => this.checkScrollNeeded(), 100);
   }
-
-  setTimeout(() => this.checkScrollNeeded(), 100);
-}
-
 
   toggleAcordeon(seccion: keyof typeof this.acordeonAbierto): void {
     this.acordeonAbierto[seccion] = !this.acordeonAbierto[seccion];
@@ -881,143 +935,139 @@ setModo(modo: 'buscar' | 'ruta'): void {
   // ---------------------------
   // LOCATION
   // ---------------------------
-obtenerUbicacion(): void {
-  this.geolocationService
-    .getCurrentLocation()
-    .then((nuevaUbicacion) => {
-      this.ubicacionUsuario = {
-        latitud: nuevaUbicacion.latitud,
-        longitud: nuevaUbicacion.longitud,
-        calle: nuevaUbicacion.calle || '',
-        numero: nuevaUbicacion.numero || '',
-       ciudad: nuevaUbicacion.ciudad || '',
-        provincia: nuevaUbicacion.provincia || '',
-        direccionCompleta: nuevaUbicacion.direccionCompleta || '',
-      };
+  obtenerUbicacion(): void {
+    this.geolocationService
+      .getCurrentLocation()
+      .then((nuevaUbicacion) => {
+        this.ubicacionUsuario = {
+          latitud: nuevaUbicacion.latitud,
+          longitud: nuevaUbicacion.longitud,
+          calle: nuevaUbicacion.calle || '',
+          numero: nuevaUbicacion.numero || '',
+          ciudad: nuevaUbicacion.ciudad || '',
+          provincia: nuevaUbicacion.provincia || '',
+          direccionCompleta: nuevaUbicacion.direccionCompleta || '',
+        };
 
-      this.storageService.guardarUbicacion(this.ubicacionUsuario);
+        this.storageService.guardarUbicacion(this.ubicacionUsuario);
 
-      // ✅ Actualiza marcador de origen
-      this.markerOrigen = { lat: this.ubicacionUsuario.latitud, lng: this.ubicacionUsuario.longitud };
-      this.mapCenter = { ...this.markerOrigen };
-      this.mapZoom = 11;
-      setTimeout(() => this.fitMapToMarkers(), 80);
-    })
-    .catch((error) => {
-      alert(`Error obteniendo ubicación: ${error.message}`);
-    });
-}
+        // ✅ Actualiza marcador de origen
+        this.markerOrigen = { lat: this.ubicacionUsuario.latitud, lng: this.ubicacionUsuario.longitud };
+        this.mapCenter = { ...this.markerOrigen };
+        this.mapZoom = 11;
+        setTimeout(() => this.fitMapToMarkers(), 80);
+      })
+      .catch((error) => {
+        alert(`Error obteniendo ubicación: ${error.message}`);
+      });
+  }
 
   // ---------------------------
   // SEARCH ENTRYPOINT
   // ---------------------------
 
+  private async ensureOrigenCoords(): Promise<void> {
+    const ll = await this.resolveLatLngFromUbicacion(this.ubicacionUsuario);
 
-private async ensureOrigenCoords(): Promise<void> {
-  const ll = await this.resolveLatLngFromUbicacion(this.ubicacionUsuario);
+    this.ubicacionUsuario.latitud = ll.lat;
+    this.ubicacionUsuario.longitud = ll.lng;
 
-  this.ubicacionUsuario.latitud = ll.lat;
-  this.ubicacionUsuario.longitud = ll.lng;
+    this.storageService.guardarUbicacion(this.ubicacionUsuario);
 
-  this.storageService.guardarUbicacion(this.ubicacionUsuario);
-
-  this.markerOrigen = { lat: ll.lat, lng: ll.lng };
-  this.mapCenter = { ...this.markerOrigen };
-  this.mapZoom = 11;
-  setTimeout(() => this.fitMapToMarkers(), 80);
-}
-
-
-async ejecutarBusqueda(): Promise<void> {
-  // ✅ Acepta direccionCompleta o (ciudad/calle)
-  const tieneInicio =
-    !!(this.ubicacionUsuario?.direccionCompleta?.trim()) ||
-    !!(this.ubicacionUsuario?.ciudad?.trim()) ||
-    !!(this.ubicacionUsuario?.calle?.trim());
-
-  if (!tieneInicio) {
-    alert('Por favor, ingresa una ubicación de inicio');
-    return;
+    this.markerOrigen = { lat: ll.lat, lng: ll.lng };
+    this.mapCenter = { ...this.markerOrigen };
+    this.mapZoom = 11;
+    setTimeout(() => this.fitMapToMarkers(), 80);
   }
 
-  const tieneDestino =
-    !!(this.destino?.direccionCompleta?.trim()) ||
-    !!(this.destino?.ciudad?.trim()) ||
-    !!(this.destino?.calle?.trim());
+  async ejecutarBusqueda(): Promise<void> {
+    // ✅ Acepta direccionCompleta o (ciudad/calle)
+    const tieneInicio =
+      !!(this.ubicacionUsuario?.direccionCompleta?.trim()) ||
+      !!(this.ubicacionUsuario?.ciudad?.trim()) ||
+      !!(this.ubicacionUsuario?.calle?.trim());
 
-  if (this.modoSeleccionado === 'ruta' && !tieneDestino) {
-    alert('En modo ruta, ingresa una ubicación de destino');
-    return;
-  }
-
-  // ✅ Asegura que ya hay dataset
-  if (this.gasolineras.length === 0) {
-    this.error = 'Cargando gasolineras...';
-    this.busquedaEnCurso = true;
-
-    try {
-      await new Promise<void>((resolve, reject) => {
-        let attempts = 0;
-        const maxAttempts = 100;
-
-        const checkInterval = setInterval(() => {
-          attempts++;
-          if (this.gasolineras.length > 0) {
-            clearInterval(checkInterval);
-            resolve();
-          } else if (attempts >= maxAttempts) {
-            clearInterval(checkInterval);
-            reject(new Error('No se pudieron cargar las gasolineras después de 10 segundos'));
-          }
-        }, 100);
-      });
-      this.error = null;
-    } catch (e: any) {
-      this.error = e?.message ?? 'Error al cargar las gasolineras. Intenta recargar la página.';
-      this.busquedaEnCurso = false;
+    if (!tieneInicio) {
+      alert('Por favor, ingresa una ubicación de inicio');
       return;
     }
-  }
 
-  this.busquedaEnCurso = true;
-  this.error = null;
+    const tieneDestino =
+      !!(this.destino?.direccionCompleta?.trim()) ||
+      !!(this.destino?.ciudad?.trim()) ||
+      !!(this.destino?.calle?.trim());
 
-  // ✅ CLAVE: usa siempre los filtros temporales que vienen del componente
-  this.filters = { ...this.filtersTemporales };
-
-  try {
-    // ✅ CLAVE: en ambos modos, asegura coordenadas de ORIGEN antes de usar distancias
-    await this.ensureOrigenCoords();
-
-    if (this.modoSeleccionado === 'buscar') {
-      this.ejecutarBusquedaLocal();
-    } else {
-      await this.ejecutarBusquedaEnRuta();
+    if (this.modoSeleccionado === 'ruta' && !tieneDestino) {
+      alert('En modo ruta, ingresa una ubicación de destino');
+      return;
     }
 
-    this.mostrarResultados = true;
-    this.buildStationMarkersFromResults();
+    // ✅ Asegura que ya hay dataset
+    if (this.gasolineras.length === 0) {
+      this.error = 'Cargando gasolineras...';
+      this.busquedaEnCurso = true;
 
-    if (this.gasolinerasFiltradas.length > 0) {
-      this.acordeonAbierto.resultados = true;
-      setTimeout(() => {
-        const elementoResultados = document.getElementById('resultados-container');
-        if (elementoResultados) {
-          elementoResultados.scrollIntoView({ behavior: 'smooth', block: 'start' });
-        }
-      }, 300);
+      try {
+        await new Promise<void>((resolve, reject) => {
+          let attempts = 0;
+          const maxAttempts = 100;
+
+          const checkInterval = setInterval(() => {
+            attempts++;
+            if (this.gasolineras.length > 0) {
+              clearInterval(checkInterval);
+              resolve();
+            } else if (attempts >= maxAttempts) {
+              clearInterval(checkInterval);
+              reject(new Error('No se pudieron cargar las gasolineras después de 10 segundos'));
+            }
+          }, 100);
+        });
+        this.error = null;
+      } catch (e: any) {
+        this.error = e?.message ?? 'Error al cargar las gasolineras. Intenta recargar la página.';
+        this.busquedaEnCurso = false;
+        return;
+      }
     }
 
-    this.storageService.guardarFiltros(this.filters);
-    setTimeout(() => this.checkScrollNeeded(), 500);
-  } catch (e: any) {
-    // ✅ Si el geocode falla, aquí lo vas a ver
-    this.error = e?.message ?? 'Error en la búsqueda.';
-  } finally {
-    this.busquedaEnCurso = false;
-  }
-}
+    this.busquedaEnCurso = true;
+    this.error = null;
 
+    // ✅ CLAVE: usa siempre los filtros temporales que vienen del componente
+    this.filters = { ...this.filtersTemporales };
+
+    try {
+      // ✅ CLAVE: en ambos modos, asegura coordenadas de ORIGEN antes de usar distancias
+      await this.ensureOrigenCoords();
+
+      if (this.modoSeleccionado === 'buscar') {
+        this.ejecutarBusquedaLocal();
+      } else {
+        await this.ejecutarBusquedaEnRuta();
+      }
+
+      this.mostrarResultados = true;
+      this.buildStationMarkersFromResults();
+
+      if (this.gasolinerasFiltradas.length > 0) {
+        this.acordeonAbierto.resultados = true;
+        setTimeout(() => {
+          const elementoResultados = document.getElementById('resultados-container');
+          if (elementoResultados) {
+            elementoResultados.scrollIntoView({ behavior: 'smooth', block: 'start' });
+          }
+        }, 300);
+      }
+
+      this.storageService.guardarFiltros(this.filters);
+      setTimeout(() => this.checkScrollNeeded(), 500);
+    } catch (e: any) {
+      this.error = e?.message ?? 'Error en la búsqueda.';
+    } finally {
+      this.busquedaEnCurso = false;
+    }
+  }
 
   private ejecutarBusquedaLocal(): void {
     this.aplicarFilters();
@@ -1071,39 +1121,36 @@ async ejecutarBusqueda(): Promise<void> {
   // ---------------------------
 
   aplicarFilters(): void {
-  if (!this.gasolineras.length) return;
+    if (!this.gasolineras.length) return;
 
-  // ✅ radio efectivo = slider manda, autonomía solo recorta si es menor
-  const sliderKm = Number(this.filters.maxDistance);
-  const autonomiaKm = Number(this.kmDisponiblesUsuario);
+    // ✅ radio efectivo = slider manda, autonomía solo recorta si es menor
+    const sliderKm = Number(this.filters.maxDistance);
+    const autonomiaKm = Number(this.kmDisponiblesUsuario);
 
-  const sliderValido = Number.isFinite(sliderKm) && sliderKm > 0;
-  const autonomiaValida = Number.isFinite(autonomiaKm) && autonomiaKm > 0;
+    const sliderValido = Number.isFinite(sliderKm) && sliderKm > 0;
+    const autonomiaValida = Number.isFinite(autonomiaKm) && autonomiaKm > 0;
 
-  let radioEfectivo: number | null = null;
+    let radioEfectivo: number | null = null;
 
-  if (sliderValido && autonomiaValida) radioEfectivo = Math.min(sliderKm, autonomiaKm);
-  else if (sliderValido) radioEfectivo = sliderKm;
-  else if (autonomiaValida) radioEfectivo = autonomiaKm;
-  else radioEfectivo = null; // sin límite
+    if (sliderValido && autonomiaValida) radioEfectivo = Math.min(sliderKm, autonomiaKm);
+    else if (sliderValido) radioEfectivo = sliderKm;
+    else if (autonomiaValida) radioEfectivo = autonomiaKm;
+    else radioEfectivo = null; // sin límite
 
-  const filtrosAplicados = {
-    ...this.filters,
-    // si no hay límite, pon un número muy grande (para no romper service)
-    maxDistance: radioEfectivo ?? 999999,
-  };
+    const filtrosAplicados = {
+      ...this.filters,
+      maxDistance: radioEfectivo ?? 999999,
+    };
 
-  // ✅ CLAVE: aquí se aplican empresas, precio, fuelType, onlyOpen, etc.
-  this.gasolinerasFiltradas = this.gasolineraService.filtrarGasolineras(
-    this.gasolineras,
-    filtrosAplicados,
-    this.ubicacionUsuario
-  );
+    this.gasolinerasFiltradas = this.gasolineraService.filtrarGasolineras(
+      this.gasolineras,
+      filtrosAplicados,
+      this.ubicacionUsuario
+    );
 
-  this.ordenarGasolineras();
-  setTimeout(() => this.checkScrollNeeded(), 100);
-}
-
+    this.ordenarGasolineras();
+    setTimeout(() => this.checkScrollNeeded(), 100);
+  }
 
   ordenarGasolineras(): void {
     this.gasolinerasFiltradas.forEach((g) => {
@@ -1154,23 +1201,20 @@ async ejecutarBusqueda(): Promise<void> {
     }
   }
 
-onFiltersCambiados(nuevos: any): void {
-  // ✅ guarda SIEMPRE lo que viene del componente
-  this.filtersTemporales = { ...nuevos };
+  onFiltersCambiados(nuevos: any): void {
+    this.filtersTemporales = { ...nuevos };
+    this.filters = { ...this.filtersTemporales };
+  }
 
-  // opcional: si quieres que el UI se vea “sincronizado” aunque no pulses buscar
-   this.filters = { ...this.filtersTemporales };
-}
+  onGasolineraSeleccionada(g: Gasolinera, ajustarMapa: boolean = true): void {
+    this.gasolineraSeleccionada = g;
+    this.acordeonAbierto.detalles = true;
 
-onGasolineraSeleccionada(g: Gasolinera, ajustarMapa: boolean = true): void {
-  this.gasolineraSeleccionada = g;
-  this.acordeonAbierto.detalles = true;
+    // ✅ marcador "selección"
+    this.setSelectedMarkerFromStation(g);
 
-  // ✅ marcador “selección”
-  this.setSelectedMarkerFromStation(g);
-
-  setTimeout(() => this.checkScrollNeeded(), 100);
-}
+    setTimeout(() => this.checkScrollNeeded(), 100);
+  }
 
   // ---------------------------
   // RESET
@@ -1231,6 +1275,9 @@ onGasolineraSeleccionada(g: Gasolinera, ajustarMapa: boolean = true): void {
     this.storageService.guardarFiltros(this.filters);
 
     this.cargarGasolineras();
+    
+    // Resetear el video
+    this.resetVideoPlayback();
   }
 
   restablecerFiltros(): void {
@@ -1253,9 +1300,9 @@ onGasolineraSeleccionada(g: Gasolinera, ajustarMapa: boolean = true): void {
 
   // =========================================================
   // ✅ MODO RUTA
-  //   - Autonomía: limita “leg1Km” (origen -> gasolinera)
-  //   - Slider maxDistance: limita “extraKmReal” (desvío real total)
-  //   - distanceKm YA NO se usa para desvío (evita el “161 km”)
+  //   - Autonomía: limita "leg1Km" (origen -> gasolinera)
+  //   - Slider maxDistance: limita "extraKmReal" (desvío real total)
+  //   - distanceKm YA NO se usa para desvío (evita el "161 km")
   // =========================================================
   private async ejecutarBusquedaEnRuta(): Promise<void> {
     this.debugReset();
@@ -1459,7 +1506,7 @@ onGasolineraSeleccionada(g: Gasolinera, ajustarMapa: boolean = true): void {
             const leg1Km = info.distToGasKm;
             const extraKmReal = Math.max(0, info.distConParadaKm - base.distBaseKm);
 
-            // ✅ Autonomía SOLO valida el “primer tramo” (origen->gasolinera)
+            // ✅ Autonomía SOLO valida el "primer tramo" (origen->gasolinera)
             if (!autonomiaIlimitada && leg1Km > kmUsables) {
               this.updateDebugRuta({
                 googleCalls: {
@@ -1497,7 +1544,7 @@ onGasolineraSeleccionada(g: Gasolinera, ajustarMapa: boolean = true): void {
 
             g.routeInfo = finalInfo;
 
-            // ✅ Si quieres que “distanceKm” tenga un significado en modo ruta:
+            // ✅ Si quieres que "distanceKm" tenga un significado en modo ruta:
             g.distanceKm = (g as any)._kmFromOrigin;
 
             finalSelected.push(g);
@@ -1556,7 +1603,7 @@ onGasolineraSeleccionada(g: Gasolinera, ajustarMapa: boolean = true): void {
         }
       }
 
-      // ✅ Orden final (price o “distancia a ruta” según filtro)
+      // ✅ Orden final (price o "distancia a ruta" según filtro)
       finalSelected.sort((a, b) => this.compareBySort(a, b, this.filters));
 
       if (finalSelected.length === 0) {
@@ -1807,20 +1854,17 @@ onGasolineraSeleccionada(g: Gasolinera, ajustarMapa: boolean = true): void {
     return Math.sqrt(dx * dx + dy * dy);
   }
 
-
   onInicioAddressChanged(): void {
-  this.ubicacionUsuario.latitud = 0;
-  this.ubicacionUsuario.longitud = 0;
-  this.markerOrigen = undefined;
-}
+    this.ubicacionUsuario.latitud = 0;
+    this.ubicacionUsuario.longitud = 0;
+    this.markerOrigen = undefined;
+  }
 
-
-onDestinoAddressChanged(): void {
-  this.destino.latitud = 0;
-  this.destino.longitud = 0;
-  this.markerDestino = undefined;
-}
-
+  onDestinoAddressChanged(): void {
+    this.destino.latitud = 0;
+    this.destino.longitud = 0;
+    this.markerDestino = undefined;
+  }
 
   // =========================================================
   // ✅ Geocoding + Routes
@@ -1828,58 +1872,55 @@ onDestinoAddressChanged(): void {
   //   - Routes: GoogleRoutesService si hay key (con fallback)
   // =========================================================
 
-private async resolveLatLngFromUbicacion(u: Ubicacion): Promise<{ lat: number; lng: number }> {
-  // Si ya hay coords válidas, las usamos
-  if (Number.isFinite(u.latitud) && Number.isFinite(u.longitud) && u.latitud !== 0 && u.longitud !== 0) {
-    return { lat: u.latitud, lng: u.longitud };
-  }
-
-  const texto = this.formatAddress(u);
-  if (!texto.trim()) throw new Error('Dirección inválida para geocodificar.');
-
-  // 1) Intento Nominatim
-  try {
-    const r = await this.nominatimGeocode(texto);
-    if (Number.isFinite(r.lat) && Number.isFinite(r.lng) && !(r.lat === 0 && r.lng === 0)) {
-      return r;
+  private async resolveLatLngFromUbicacion(u: Ubicacion): Promise<{ lat: number; lng: number }> {
+    if (Number.isFinite(u.latitud) && Number.isFinite(u.longitud) && u.latitud !== 0 && u.longitud !== 0) {
+      return { lat: u.latitud, lng: u.longitud };
     }
-  } catch (e) {
-    console.warn('⚠️ Nominatim falló, probando Google Geocoder...', e);
+
+    const texto = this.formatAddress(u);
+    if (!texto.trim()) throw new Error('Dirección inválida para geocodificar.');
+
+    // 1) Intento Nominatim
+    try {
+      const r = await this.nominatimGeocode(texto);
+      if (Number.isFinite(r.lat) && Number.isFinite(r.lng) && !(r.lat === 0 && r.lng === 0)) {
+        return r;
+      }
+    } catch (e) {
+      console.warn('⚠️ Nominatim falló, probando Google Geocoder...', e);
+    }
+
+    // 2) Fallback Google (mismo "estilo" que en ruta)
+    const g = await this.googleGeocode(texto);
+    return g;
   }
 
-  // 2) Fallback Google (mismo “estilo” que en ruta)
-  const g = await this.googleGeocode(texto);
-  return g;
-}
+  private formatAddress(u: Ubicacion): string {
+    const full = (u.direccionCompleta || '').trim();
+    if (full) return full;
 
-
-private formatAddress(u: Ubicacion): string {
-  const full = (u.direccionCompleta || '').trim();
-  if (full) return full;
-
-  const parts = [u.calle, u.numero, u.ciudad, u.provincia].filter(Boolean);
-  return parts.join(', ');
-}
-
-private async nominatimGeocode(address: string): Promise<LatLng> {
-  const url =
-    'https://nominatim.openstreetmap.org/search?format=json&limit=1&addressdetails=1&countrycodes=es&accept-language=es&q=' +
-    encodeURIComponent(address);
-
-  const res: any = await firstValueFrom(this.http.get(url));
-  const item = res?.[0];
-  if (!item) throw new Error('No se pudo geocodificar la dirección (Nominatim).');
-
-  const lat = parseFloat(item.lat);
-  const lng = parseFloat(item.lon);
-
-  if (!Number.isFinite(lat) || !Number.isFinite(lng)) {
-    throw new Error('Nominatim devolvió coordenadas no numéricas.');
+    const parts = [u.calle, u.numero, u.ciudad, u.provincia].filter(Boolean);
+    return parts.join(', ');
   }
 
-  return { lat, lng };
-}
+  private async nominatimGeocode(address: string): Promise<LatLng> {
+    const url =
+      'https://nominatim.openstreetmap.org/search?format=json&limit=1&addressdetails=1&countrycodes=es&accept-language=es&q=' +
+      encodeURIComponent(address);
 
+    const res: any = await firstValueFrom(this.http.get(url));
+    const item = res?.[0];
+    if (!item) throw new Error('No se pudo geocodificar la dirección (Nominatim).');
+
+    const lat = parseFloat(item.lat);
+    const lng = parseFloat(item.lon);
+
+    if (!Number.isFinite(lat) || !Number.isFinite(lng)) {
+      throw new Error('Nominatim devolvió coordenadas no numéricas.');
+    }
+
+    return { lat, lng };
+  }
 
   private async getRouteBase(origen: LatLng, destino: LatLng): Promise<RouteBaseInfo> {
     if (!this.hasGoogleKey) {
@@ -2020,7 +2061,7 @@ private async nominatimGeocode(address: string): Promise<LatLng> {
     return interval;
   }
 
-private compareBySort(a: Gasolinera, b: Gasolinera, filtros: Filters): number {
+  private compareBySort(a: Gasolinera, b: Gasolinera, filtros: Filters): number {
     const pa = this.getPrecioLitroSegunFiltro(a, filtros.fuelType);
     const pb = this.getPrecioLitroSegunFiltro(b, filtros.fuelType);
     const da = (a as any)._minDistToRouteKm ?? 999999;
@@ -2035,29 +2076,26 @@ private compareBySort(a: Gasolinera, b: Gasolinera, filtros: Filters): number {
     }
   }
 
-
   private googleGeocode(address: string): Promise<{ lat: number; lng: number }> {
-  return new Promise((resolve, reject) => {
-    // @ts-ignore
-    if (!(window as any).google?.maps?.Geocoder) {
-      reject(new Error('Google Maps Geocoder no está disponible (API no cargada).'));
-      return;
-    }
-
-    // @ts-ignore
-    const geocoder = new google.maps.Geocoder();
-
-    geocoder.geocode({ address, region: 'ES' }, (results: any, status: any) => {
-      if (status !== 'OK' || !results?.length) {
-        reject(new Error(`Google Geocoding falló: ${status}`));
+    return new Promise((resolve, reject) => {
+      // @ts-ignore
+      if (!(window as any).google?.maps?.Geocoder) {
+        reject(new Error('Google Maps Geocoder no está disponible (API no cargada).'));
         return;
       }
 
-      const loc = results[0].geometry.location;
-      resolve({ lat: loc.lat(), lng: loc.lng() });
+      // @ts-ignore
+      const geocoder = new google.maps.Geocoder();
+
+      geocoder.geocode({ address, region: 'ES' }, (results: any, status: any) => {
+        if (status !== 'OK' || !results?.length) {
+          reject(new Error(`Google Geocoding falló: ${status}`));
+          return;
+        }
+
+        const loc = results[0].geometry.location;
+        resolve({ lat: loc.lat(), lng: loc.lng() });
+      });
     });
-  });
+  }
 }
-
-}
-

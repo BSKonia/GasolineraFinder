@@ -75,7 +75,7 @@
   justify-content: flex-end;
   align-items: center;
 
-  /* 👇 evita blancos “por defecto” */
+  /* 👇 evita blancos "por defecto" */
   background: transparent;
 }
 
@@ -86,6 +86,15 @@
   border-radius: 16px;
   pointer-events: none;
   filter: drop-shadow(0 14px 38px rgba(0, 0, 0, 0.35));
+  
+  // Asegurar que el video se muestre correctamente
+  object-fit: contain;
+  background-color: #000; // Fondo negro temporal mientras carga
+}
+
+// Estilo para cuando el video está pausado
+.gif-coche video.paused {
+  opacity: 0.95;
 }
 
 /* Responsive */
@@ -95,6 +104,10 @@
   }
   .gif-coche {
     justify-content: center;
+  }
+  
+  .gif-coche video {
+    max-width: 100%;
   }
 }
 
@@ -524,7 +537,7 @@
 }
 
 .btn-ubicacion-elegante {
- background: linear-gradient(135deg, var(--accent-orange), var(--accent-orange-dark));
+  background: linear-gradient(135deg, var(--accent-orange), var(--accent-orange-dark));
   color: white;
   border: none;
   padding: 14px 28px;
@@ -659,7 +672,7 @@
 }
 
 /* =========================================================
-   ✅ NUEVO: Bloque “Datos del vehículo” (autonomía)
+   ✅ NUEVO: Bloque "Datos del vehículo" (autonomía)
 ========================================================= */
 
 .ruta-settings {
@@ -952,7 +965,7 @@
 
   color: var(--accent-orange) !important;
 
-  /* look “cabecera” */
+  /* look "cabecera" */
   padding-bottom: 8px;
   border-bottom: 1px solid rgba(255, 148, 77, 0.16);
 }
@@ -965,7 +978,7 @@
   color: rgba(255, 255, 255, 0.78) !important;
 }
 
-/* Filas tipo “lista” */
+/* Filas tipo "lista" */
 :host ::ng-deep .gf-iw .gf-row {
   display: grid;
   grid-template-columns: 18px auto 1fr;
@@ -1013,7 +1026,6 @@
 :host ::ng-deep .gf-iw .gf-link:hover {
   color: #fff !important;
 }
-
 
 /* =========================================================
    BOTÓN "IR A GOOGLE MAPS" – InfoWindow
@@ -1066,4 +1078,35 @@
   transform: translateY(0);
 }
 
+/* =========================================================
+   ✅ MAPA CARD
+========================================================= */
 
+.map-card {
+  margin: 18px 0 22px;
+  padding: 22px 22px;
+
+  background: var(--bg-card);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-lg);
+
+  box-shadow: var(--shadow-md);
+  overflow: hidden;
+}
+
+.map-header {
+  margin-bottom: 16px;
+}
+
+.map-header h3 {
+  margin: 0 0 6px;
+  font-size: 18px;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.map-subtitle {
+  font-size: 14px;
+  color: var(--text-secondary);
+  margin: 0;
+}
